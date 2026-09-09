@@ -56,17 +56,27 @@ void bk_synth_note_on(bk_synth_t *s, int note, int velocity) {
 
 void bk_synth_note_off(bk_synth_t *s, int note) {
     for (int i = 0; i < BK_VOICES; ++i)
-        if (s->voices[i].active && s->voices[i].note == note) s->voices[i].held = 0;
+        if (s->voices[i].active && s->voices[i].note == note) {
+            s->voices[i].held = 0;
+            s->voices[i].target_pressure = 0.0f;
+        }
 }
 
 void bk_synth_pressure(bk_synth_t *s, int note, int value) {
     const float p = clamp01((float)value / 127.0f);
     for (int i = 0; i < BK_VOICES; ++i)
-        if (s->voices[i].active && s->voices[i].note == note) s->voices[i].pressure = p;
+        if (s->voices[i].active && s->voices[i].note == note) s->voices[i].target_pressure = p;
 }
 
 void bk_synth_all_notes_off(bk_synth_t *s) {
-    for (int i = 0; i < BK_VOICES; ++i) s->voices[i].held = 0;
+    for (int i = 0; i < BK_VOICES; ++i) {
+        s->voices[i].held = 0;
+        s->voices[i].target_pressure = 0.0f;
+    }
+}
+
+void bk_synth_kill_all(bk_synth_t *s) {
+    memset(s->voices, 0, sizeof(s->voices));
 }
 
 void bk_synth_render(bk_synth_t *s, float *out_lr, int frames) {
@@ -104,6 +114,6 @@ int bk_synth_has_note(const bk_synth_t *s, int note) {
 
 float bk_synth_note_pressure(const bk_synth_t *s, int note) {
     for (int i = 0; i < BK_VOICES; ++i)
-        if (s->voices[i].active && s->voices[i].note == note) return s->voices[i].pressure;
+        if (s->voices[i].active && s->voices[i].note == note) return s->voices[i].target_pressure;
     return 0.0f;
 }

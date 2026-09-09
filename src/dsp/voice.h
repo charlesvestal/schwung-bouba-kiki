@@ -10,6 +10,7 @@ typedef struct bk_voice {
     int note;
     float velocity;
     float pressure;
+    float target_pressure;
     float envelope;
     uint64_t age;
     float osc_sin[BK_PARTIALS];
@@ -18,6 +19,8 @@ typedef struct bk_voice {
     float step_cos[BK_PARTIALS];
     float amps[BK_PARTIALS];
     float target_amps[BK_PARTIALS];
+    float steal_tail;
+    float last_output;
 } bk_voice_t;
 
 void bk_voice_start(bk_voice_t *v, int note, int velocity, uint64_t age,

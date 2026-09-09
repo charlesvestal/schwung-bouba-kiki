@@ -25,7 +25,7 @@
       {"key":"wobble","name":"Wobble","short_name":"Wobl","type":"float","min":0,"max":1,"step":0.01,"default":0.1},
       {"key":"attack","name":"Attack","short_name":"Atk","type":"float","min":0,"max":1,"step":0.01,"default":0.05},
       {"key":"release","name":"Release","short_name":"Rel","type":"float","min":0,"max":1,"step":0.01,"default":0.25},
-      {"key":"shape","name":"Shape","short_name":"Shpe","type":"canvas","canvas_script":"canvas.js","as_page":true,"show_value":false}
+      {"key":"shape","name":"Shape","short_name":"Shpe","type":"canvas","canvas_script":"canvas.js","as_page":true,"extra_keys":["pressure","pulse"],"show_value":false}
     ]
   },
   "ui_hierarchy": {

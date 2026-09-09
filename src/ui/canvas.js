@@ -43,22 +43,12 @@
 
     globalThis.canvas_overlay = {
         drawPage(ctx, {values, nowMs}) {
-            const state = ctx.state || (ctx.state = {});
-            if (state.pulse === undefined) state.pulse = 0;
-            state.pulse *= 0.88;
-            if (state.pulse < 0.001) state.pulse = 0;
-            const supplied = Object.assign({}, values || {}, {pressure: Math.max(clamp(values && values.pressure), state.pressure || 0)});
-            const p = shapePoints(supplied, nowMs, ctx.width, ctx.height, state.pulse);
+            const supplied = values || {};
+            const p = shapePoints(supplied, nowMs, ctx.width, ctx.height,
+                                  clamp(supplied.pulse) * 0.08);
             for (let i=0;i<p.length;i++) {
                 const a=p[i], b=p[(i+1)%p.length]; line(ctx,a[0],a[1],b[0],b[1]);
             }
-        },
-        onMidi(ctx, {data}) {
-            if (!data || data.length < 3) return;
-            const state = ctx.state || (ctx.state = {}), status=data[0]&0xf0;
-            if (status===0x90 && data[2]) state.pulse=Math.max(state.pulse||0,0.025+data[2]/127*0.055);
-            if (status===0xa0) state.pressure=data[2]/127;
-            if (status===0x80 || (status===0x90 && !data[2])) state.pressure=0;
         }
     };
     globalThis.BOUBA_KIKI_SHAPE_FOR_TEST = (v,t,w,h) => shapePoints(v,t,w,h,0);

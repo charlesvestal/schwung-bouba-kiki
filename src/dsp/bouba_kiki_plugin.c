@@ -7,10 +7,15 @@
 #include <string.h>
 
 typedef struct bk_instance {
+    int used;
     bk_synth_t synth;
     float values[8];
     float pressure;
+    float pulse;
 } bk_instance_t;
+
+#define BK_INSTANCE_CAPACITY 16
+static bk_instance_t INSTANCE_POOL[BK_INSTANCE_CAPACITY];
 
 static const char *const KEYS[8] = {
     "morph", "bulge", "pinch", "spikes", "tilt", "wobble", "attack", "release"
@@ -18,15 +23,15 @@ static const char *const KEYS[8] = {
 static const float DEFAULTS[8] = {0.25f,0.35f,0.0f,0.25f,0.5f,0.1f,0.05f,0.25f};
 
 static const char CHAIN_PARAMS[] =
-"[{\"key\":\"morph\",\"name\":\"Morph\",\"type\":\"float\",\"min\":0,\"max\":1},"
-"{\"key\":\"bulge\",\"name\":\"Bulge\",\"type\":\"float\",\"min\":0,\"max\":1},"
-"{\"key\":\"pinch\",\"name\":\"Pinch\",\"type\":\"float\",\"min\":0,\"max\":1},"
-"{\"key\":\"spikes\",\"name\":\"Spikes\",\"type\":\"float\",\"min\":0,\"max\":1},"
-"{\"key\":\"tilt\",\"name\":\"Tilt\",\"type\":\"float\",\"min\":0,\"max\":1},"
-"{\"key\":\"wobble\",\"name\":\"Wobble\",\"type\":\"float\",\"min\":0,\"max\":1},"
-"{\"key\":\"attack\",\"name\":\"Attack\",\"type\":\"float\",\"min\":0,\"max\":1},"
-"{\"key\":\"release\",\"name\":\"Release\",\"type\":\"float\",\"min\":0,\"max\":1},"
-"{\"key\":\"shape\",\"name\":\"Shape\",\"type\":\"canvas\",\"canvas_script\":\"canvas.js\",\"as_page\":true}]";
+"[{\"key\":\"morph\",\"name\":\"Morph\",\"short_name\":\"Mrph\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01,\"default\":0.25},"
+"{\"key\":\"bulge\",\"name\":\"Bulge\",\"short_name\":\"Blge\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01,\"default\":0.35},"
+"{\"key\":\"pinch\",\"name\":\"Pinch\",\"short_name\":\"Pnch\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01,\"default\":0},"
+"{\"key\":\"spikes\",\"name\":\"Spikes\",\"short_name\":\"Spke\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01,\"default\":0.25},"
+"{\"key\":\"tilt\",\"name\":\"Tilt\",\"short_name\":\"Tilt\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01,\"default\":0.5},"
+"{\"key\":\"wobble\",\"name\":\"Wobble\",\"short_name\":\"Wobl\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01,\"default\":0.1},"
+"{\"key\":\"attack\",\"name\":\"Attack\",\"short_name\":\"Atk\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01,\"default\":0.05},"
+"{\"key\":\"release\",\"name\":\"Release\",\"short_name\":\"Rel\",\"type\":\"float\",\"min\":0,\"max\":1,\"step\":0.01,\"default\":0.25},"
+"{\"key\":\"shape\",\"name\":\"Shape\",\"short_name\":\"Shpe\",\"type\":\"canvas\",\"canvas_script\":\"canvas.js\",\"as_page\":true,\"extra_keys\":[\"pressure\",\"pulse\"],\"show_value\":false}]";
 static const char UI_HIERARCHY[] =
 "{\"pad_layout\":\"chromatic\",\"levels\":{\"root\":{\"label\":\"Bouba-Kiki\","
 "\"knobs\":[\"morph\",\"bulge\",\"pinch\",\"spikes\",\"tilt\",\"wobble\",\"attack\",\"release\"],"
@@ -62,7 +67,7 @@ static void set_state(bk_instance_t *in, const char *json) {
         if (p) {
             p += strlen(needle);
             char *end = NULL; errno = 0; float x = strtof(p, &end);
-            if (!errno && end != p && (*end == ',' || *end == '}'))
+            if (!errno && end != p && isfinite(x) && (*end == ',' || *end == '}'))
                 in->values[i] = clamp01(x);
         }
     }
@@ -70,21 +75,41 @@ static void set_state(bk_instance_t *in, const char *json) {
 }
 static void *create_instance(const char *dir, const char *defaults) {
     (void)dir;
-    bk_instance_t *in = (bk_instance_t *)calloc(1, sizeof(*in));
+    bk_instance_t *in = NULL;
+    for (int i = 0; i < BK_INSTANCE_CAPACITY; ++i)
+        if (!INSTANCE_POOL[i].used) { in = &INSTANCE_POOL[i]; break; }
     if (!in) return NULL;
+    memset(in, 0, sizeof(*in));
+    in->used = 1;
     memcpy(in->values, DEFAULTS, sizeof(DEFAULTS));
     bk_synth_init(&in->synth, 44100.0f); apply_values(in);
     if (defaults) set_state(in, defaults);
     return in;
 }
-static void destroy_instance(void *ptr) { free(ptr); }
+static void destroy_instance(void *ptr) {
+    if (!ptr) return;
+    bk_instance_t *in = ptr;
+    memset(in, 0, sizeof(*in));
+}
+static void refresh_pressure(bk_instance_t *in) {
+    float best = 0.0f;
+    for (int i = 0; i < BK_VOICES; ++i) {
+        const bk_voice_t *v = &in->synth.voices[i];
+        if (v->active && v->held && v->target_pressure > best) best = v->target_pressure;
+    }
+    in->pressure = best;
+}
 static void on_midi(void *ptr, const uint8_t *msg, int len, int source) {
     (void)source; if (!ptr || !msg || len < 3) return;
     bk_instance_t *in = ptr; const int status = msg[0] & 0xf0;
-    if (status == 0x90 && msg[2]) bk_synth_note_on(&in->synth, msg[1], msg[2]);
-    else if (status == 0x80 || (status == 0x90 && !msg[2])) bk_synth_note_off(&in->synth, msg[1]);
-    else if (status == 0xa0) { bk_synth_pressure(&in->synth, msg[1], msg[2]); in->pressure = msg[2] / 127.0f; }
-    else if (status == 0xb0 && (msg[1] == 120 || msg[1] == 123)) bk_synth_all_notes_off(&in->synth);
+    if (status == 0x90 && msg[2]) {
+        bk_synth_note_on(&in->synth, msg[1], msg[2]);
+        in->pulse = msg[2] / 127.0f;
+    } else if (status == 0x80 || (status == 0x90 && !msg[2])) bk_synth_note_off(&in->synth, msg[1]);
+    else if (status == 0xa0) bk_synth_pressure(&in->synth, msg[1], msg[2]);
+    else if (status == 0xb0 && msg[1] == 120) bk_synth_kill_all(&in->synth);
+    else if (status == 0xb0 && msg[1] == 123) bk_synth_all_notes_off(&in->synth);
+    refresh_pressure(in);
 }
 static void set_param(void *ptr, const char *key, const char *val) {
     if (!ptr || !key) return;
@@ -98,6 +123,8 @@ static int get_param(void *ptr, const char *key, char *buf, int len) {
     if (strcmp(key, "chain_params") == 0) return copy_string(buf, len, CHAIN_PARAMS);
     if (strcmp(key, "ui_hierarchy") == 0) return copy_string(buf, len, UI_HIERARCHY);
     if (strcmp(key, "pressure") == 0) { char t[32]; snprintf(t,sizeof(t),"%.6g",in->pressure); return copy_string(buf,len,t); }
+    if (strcmp(key, "pulse") == 0) { char t[32]; snprintf(t,sizeof(t),"%.6g",in->pulse); return copy_string(buf,len,t); }
+    if (strcmp(key, "active") == 0) { char t[16]; snprintf(t,sizeof(t),"%d",bk_synth_active_voices(&in->synth)>0); return copy_string(buf,len,t); }
     int i = key_index(key);
     if (i >= 0) { char t[32]; snprintf(t,sizeof(t),"%.6g",in->values[i]); return copy_string(buf,len,t); }
     if (strcmp(key, "state") == 0) {
@@ -117,6 +144,8 @@ static void render_block(void *ptr, int16_t *out, int frames) {
         for (int i=0;i<n*2;++i) { float x=temp[i]*32767.0f; if(x>32767)x=32767;if(x<-32768)x=-32768;out[i]=(int16_t)x; }
         out += n*2; frames -= n;
     }
+    in->pulse *= 0.90f;
+    if (in->pulse < 0.001f) in->pulse = 0.0f;
 }
 static plugin_api_v2_t API = {2,create_instance,destroy_instance,on_midi,set_param,get_param,get_error,render_block};
 __attribute__((visibility("default"))) plugin_api_v2_t *move_plugin_init_v2(const host_api_v1_t *host) { (void)host; return &API; }

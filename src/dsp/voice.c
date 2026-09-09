@@ -6,7 +6,9 @@
 
 void bk_voice_start(bk_voice_t *v, int note, int velocity, uint64_t age,
                     float sample_rate, const float spectrum[BK_PARTIALS]) {
+    const float tail = v->active ? v->last_output : 0.0f;
     memset(v, 0, sizeof(*v));
+    v->steal_tail = tail;
     v->active = 1;
     v->held = 1;
     v->note = note;
@@ -28,6 +30,7 @@ void bk_voice_start(bk_voice_t *v, int note, int velocity, uint64_t age,
 
 float bk_voice_render(bk_voice_t *v, float attack_s, float release_s) {
     if (!v->active) return 0.0f;
+    v->pressure += (v->target_pressure - v->pressure) * 0.02f;
     if (v->held) {
         const float pressure_attack = attack_s * (1.0f - 0.75f * v->pressure);
         const float inc = 1.0f / (44100.0f * pressure_attack);
@@ -52,5 +55,9 @@ float bk_voice_render(bk_voice_t *v, float attack_s, float release_s) {
         const float bite = 1.0f + v->pressure * 1.5f * ((float)i / (float)(BK_PARTIALS - 1));
         sample += v->osc_sin[i] * v->amps[i] * bite;
     }
-    return sample * v->velocity * v->envelope * 0.16f;
+    float output = sample * v->velocity * v->envelope * 0.16f + v->steal_tail;
+    v->steal_tail *= 0.985f;
+    if (fabsf(v->steal_tail) < 1.0e-7f) v->steal_tail = 0.0f;
+    v->last_output = output;
+    return output;
 }

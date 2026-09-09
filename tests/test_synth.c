@@ -25,6 +25,18 @@ int main(void) {
     bk_synth_pressure(&pressed, 60, 127);
     render_peak(&soft, 1); render_peak(&pressed, 1);
     assert(pressed.voices[0].envelope > soft.voices[0].envelope * 2.0f);
+    assert(pressed.voices[0].pressure > 0.0f && pressed.voices[0].pressure < 1.0f);
+
+    /* Stealing carries the old sample into a short decay instead of cutting it. */
+    bk_synth_t steal;
+    bk_synth_init(&steal, 44100.0f); bk_synth_set_attack_release(&steal, 0, 0.2f);
+    for (int n=60;n<64;n++) bk_synth_note_on(&steal,n,120);
+    float before[2], after[2];
+    for (int i=0;i<300;i++) bk_synth_render(&steal,before,1);
+    bk_synth_note_on(&steal,72,120);
+    assert(fabsf(steal.voices[0].steal_tail) > 1e-6f);
+    bk_synth_render(&steal,after,1);
+    assert(fabsf(after[0]-before[0]) < 0.7f);
 
     bk_synth_t s;
     bk_synth_init(&s, 44100.0f);
@@ -69,6 +81,8 @@ int main(void) {
 
     bk_synth_all_notes_off(&s);
     render_peak(&s, 80);
+    assert(bk_synth_active_voices(&s) == 0);
+    bk_synth_note_on(&s, 70, 100); bk_synth_kill_all(&s);
     assert(bk_synth_active_voices(&s) == 0);
     puts("PASS: synth engine");
 }

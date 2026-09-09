@@ -8,7 +8,7 @@ const box = { globalThis: {} };
 vm.runInNewContext(source, box, { filename: "canvas.js" });
 const overlay = box.globalThis.canvas_overlay;
 assert.equal(typeof overlay.drawPage, "function");
-assert.equal(typeof overlay.onMidi, "function");
+assert.equal(overlay.onMidi, undefined, "as_page must not rely on fullscreen-only MIDI hooks");
 const points = box.globalThis.BOUBA_KIKI_SHAPE_FOR_TEST;
 assert.equal(typeof points, "function");
 
@@ -26,7 +26,6 @@ assert(roughness(kiki) > roughness(bouba) * 1.25, "Kiki should be visibly sharpe
 
 let pixels = 0;
 const ctx = {width:96,height:42,fillRect(){pixels++;},line(){pixels++;}};
-overlay.drawPage(ctx,{values:{...base,morph:0.5},nowMs:1000});
+overlay.drawPage(ctx,{values:{...base,morph:0.5,pulse:1,pressure:1},nowMs:1000});
 assert(pixels > 20, "shape page should draw an outline");
-overlay.onMidi({state:{}},{data:[0x90,60,127]});
 console.log("PASS: canvas");

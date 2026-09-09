@@ -1,7 +1,9 @@
 {
   "title": "Bouba-Kiki",
-  "sections": [
-    {"title":"Play","body":"Play chromatically. Pressure adds Kiki bite without changing the saved Morph value."},
-    {"title":"Shape","body":"Morph moves from rounded Bouba to pointed Kiki. Bulge, Pinch, Spikes, Tilt, and Wobble deform both outline and spectrum."}
+  "children": [
+    {"title":"Overview","lines":["A four-voice additive","shape synthesizer.","The outline and sound","share one harmonic","model."]},
+    {"title":"Playing it","lines":["Play chromatically.","Velocity sets level","and shape pulse size.","Pad pressure adds","Kiki bite without","moving Morph."]},
+    {"title":"Shape controls","lines":["Morph moves from soft","Bouba to sharp Kiki.","Bulge, Pinch, Spikes","and Tilt deform both","outline and spectrum.","Wobble animates both."]},
+    {"title":"Pages","lines":["The Shape page is a","clean live outline.","The next page shows","the same eight controls","as standard knobs."]}
   ]
 }
