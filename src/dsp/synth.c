@@ -2,6 +2,8 @@
 #include <math.h>
 #include <string.h>
 
+#define BK_TAU 6.28318530717958647692f
+
 static float clamp01(float v) {
     if (!isfinite(v) || v < 0.0f) return 0.0f;
     return v > 1.0f ? 1.0f : v;
@@ -22,7 +24,7 @@ void bk_synth_set_shape(bk_synth_t *s, const bk_shape_params_t *shape) {
     bk_shape_spectrum(&s->shape, 0.0f, s->spectrum);
     for (int v = 0; v < BK_VOICES; ++v)
         for (int i = 0; i < BK_PARTIALS; ++i)
-            s->voices[v].amps[i] = s->spectrum[i];
+            s->voices[v].target_amps[i] = s->spectrum[i];
 }
 
 void bk_synth_set_attack_release(bk_synth_t *s, float attack, float release) {
@@ -68,6 +70,15 @@ void bk_synth_all_notes_off(bk_synth_t *s) {
 }
 
 void bk_synth_render(bk_synth_t *s, float *out_lr, int frames) {
+    if (s->shape.wobble > 0.0f) {
+        const float rate = 0.08f + s->shape.wobble * 0.42f;
+        s->wobble_phase += BK_TAU * rate * (float)frames / s->sample_rate;
+        if (s->wobble_phase >= BK_TAU) s->wobble_phase -= BK_TAU;
+        bk_shape_spectrum(&s->shape, s->wobble_phase, s->spectrum);
+        for (int v = 0; v < BK_VOICES; ++v)
+            for (int i = 0; i < BK_PARTIALS; ++i)
+                s->voices[v].target_amps[i] = s->spectrum[i];
+    }
     const float attack_s = 0.002f + s->attack * s->attack * 2.0f;
     const float release_s = 0.01f + s->release * s->release * 4.0f;
     for (int f = 0; f < frames; ++f) {

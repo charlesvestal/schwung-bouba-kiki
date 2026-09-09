@@ -17,6 +17,7 @@ typedef struct bk_voice {
     float step_sin[BK_PARTIALS];
     float step_cos[BK_PARTIALS];
     float amps[BK_PARTIALS];
+    float target_amps[BK_PARTIALS];
 } bk_voice_t;
 
 void bk_voice_start(bk_voice_t *v, int note, int velocity, uint64_t age,

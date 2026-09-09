@@ -17,6 +17,7 @@ void bk_voice_start(bk_voice_t *v, int note, int velocity, uint64_t age,
         const float partial_hz = hz * (float)(i + 1);
         v->osc_cos[i] = 1.0f;
         v->amps[i] = spectrum[i];
+        v->target_amps[i] = spectrum[i];
         if (partial_hz < sample_rate * 0.48f) {
             const float step = 2.0f * BK_PI * partial_hz / sample_rate;
             v->step_sin[i] = sinf(step);
@@ -28,7 +29,8 @@ void bk_voice_start(bk_voice_t *v, int note, int velocity, uint64_t age,
 float bk_voice_render(bk_voice_t *v, float attack_s, float release_s) {
     if (!v->active) return 0.0f;
     if (v->held) {
-        const float inc = 1.0f / (44100.0f * attack_s);
+        const float pressure_attack = attack_s * (1.0f - 0.75f * v->pressure);
+        const float inc = 1.0f / (44100.0f * pressure_attack);
         v->envelope += inc;
         if (v->envelope > 1.0f) v->envelope = 1.0f;
     } else {
@@ -42,6 +44,7 @@ float bk_voice_render(bk_voice_t *v, float attack_s, float release_s) {
 
     float sample = 0.0f;
     for (int i = 0; i < BK_PARTIALS; ++i) {
+        v->amps[i] += (v->target_amps[i] - v->amps[i]) * 0.002f;
         if (v->step_sin[i] == 0.0f) continue;
         const float s = v->osc_sin[i], c = v->osc_cos[i];
         v->osc_sin[i] = s * v->step_cos[i] + c * v->step_sin[i];

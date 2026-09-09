@@ -1,0 +1,21 @@
+name: Release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify
+        run: for t in tests/*.sh; do bash "$t"; done
+      - name: ARM64 build
+        run: |
+          docker build -t module-builder -f scripts/Dockerfile .
+          docker run --rm -v "$PWD:/build" -w /build module-builder ./scripts/build.sh
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/bouba-kiki-module.tar.gz

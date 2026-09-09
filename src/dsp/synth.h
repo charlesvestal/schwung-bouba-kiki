@@ -10,6 +10,7 @@ typedef struct bk_synth {
     float sample_rate;
     float attack;
     float release;
+    float wobble_phase;
     uint64_t age_counter;
     bk_shape_params_t shape;
     float spectrum[BK_PARTIALS];

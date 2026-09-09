@@ -87,12 +87,14 @@ static void on_midi(void *ptr, const uint8_t *msg, int len, int source) {
     else if (status == 0xb0 && (msg[1] == 120 || msg[1] == 123)) bk_synth_all_notes_off(&in->synth);
 }
 static void set_param(void *ptr, const char *key, const char *val) {
-    if (!ptr || !key) return; bk_instance_t *in = ptr;
+    if (!ptr || !key) return;
+    bk_instance_t *in = ptr;
     int i = key_index(key); if (i >= 0) set_one(in, i, val);
     else if (strcmp(key, "state") == 0) set_state(in, val);
 }
 static int get_param(void *ptr, const char *key, char *buf, int len) {
-    if (!ptr || !key) return -1; bk_instance_t *in = ptr;
+    if (!ptr || !key) return -1;
+    bk_instance_t *in = ptr;
     if (strcmp(key, "chain_params") == 0) return copy_string(buf, len, CHAIN_PARAMS);
     if (strcmp(key, "ui_hierarchy") == 0) return copy_string(buf, len, UI_HIERARCHY);
     if (strcmp(key, "pressure") == 0) { char t[32]; snprintf(t,sizeof(t),"%.6g",in->pressure); return copy_string(buf,len,t); }
@@ -100,13 +102,15 @@ static int get_param(void *ptr, const char *key, char *buf, int len) {
     if (i >= 0) { char t[32]; snprintf(t,sizeof(t),"%.6g",in->values[i]); return copy_string(buf,len,t); }
     if (strcmp(key, "state") == 0) {
         char t[512]; int n = snprintf(t,sizeof(t),"{\"morph\":%.6g,\"bulge\":%.6g,\"pinch\":%.6g,\"spikes\":%.6g,\"tilt\":%.6g,\"wobble\":%.6g,\"attack\":%.6g,\"release\":%.6g}",in->values[0],in->values[1],in->values[2],in->values[3],in->values[4],in->values[5],in->values[6],in->values[7]);
-        if (n < 0 || n >= (int)sizeof(t)) return -1; return copy_string(buf,len,t);
+        if (n < 0 || n >= (int)sizeof(t)) return -1;
+        return copy_string(buf,len,t);
     }
     return -1;
 }
 static int get_error(void *ptr, char *buf, int len) { (void)ptr; if (buf && len) buf[0]='\0'; return 0; }
 static void render_block(void *ptr, int16_t *out, int frames) {
-    if (!ptr || !out || frames <= 0) return; bk_instance_t *in = ptr;
+    if (!ptr || !out || frames <= 0) return;
+    bk_instance_t *in = ptr;
     float temp[256];
     while (frames > 0) {
         int n = frames > 128 ? 128 : frames; bk_synth_render(&in->synth,temp,n);
