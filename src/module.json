@@ -1,0 +1,44 @@
+{
+  "id": "bouba-kiki",
+  "name": "Bouba-Kiki",
+  "version": "0.1.0",
+  "description": "Four-voice additive shape synthesizer morphing from rounded Bouba to pointed Kiki.",
+  "author": "Charles Vestal",
+  "component_type": "sound_generator",
+  "abbrev": "BK",
+  "api_version": 2,
+  "min_host_version": "1.2.1",
+  "dsp": "dsp.so",
+  "capabilities": {
+    "chainable": true,
+    "audio_out": true,
+    "audio_in": false,
+    "midi_in": true,
+    "aftertouch": true,
+    "canvas_script": "canvas.js",
+    "chain_params": [
+      {"key":"morph","name":"Morph","short_name":"Mrph","type":"float","min":0,"max":1,"step":0.01,"default":0.25},
+      {"key":"bulge","name":"Bulge","short_name":"Blge","type":"float","min":0,"max":1,"step":0.01,"default":0.35},
+      {"key":"pinch","name":"Pinch","short_name":"Pnch","type":"float","min":0,"max":1,"step":0.01,"default":0},
+      {"key":"spikes","name":"Spikes","short_name":"Spke","type":"float","min":0,"max":1,"step":0.01,"default":0.25},
+      {"key":"tilt","name":"Tilt","short_name":"Tilt","type":"float","min":0,"max":1,"step":0.01,"default":0.5},
+      {"key":"wobble","name":"Wobble","short_name":"Wobl","type":"float","min":0,"max":1,"step":0.01,"default":0.1},
+      {"key":"attack","name":"Attack","short_name":"Atk","type":"float","min":0,"max":1,"step":0.01,"default":0.05},
+      {"key":"release","name":"Release","short_name":"Rel","type":"float","min":0,"max":1,"step":0.01,"default":0.25},
+      {"key":"shape","name":"Shape","short_name":"Shpe","type":"canvas","canvas_script":"canvas.js","as_page":true,"show_value":false}
+    ]
+  },
+  "ui_hierarchy": {
+    "pad_layout": "chromatic",
+    "levels": {
+      "root": {
+        "label": "Bouba-Kiki",
+        "knobs": ["morph","bulge","pinch","spikes","tilt","wobble","attack","release"],
+        "params": [
+          {"key":"shape"},{"key":"morph"},{"key":"bulge"},{"key":"pinch"},{"key":"spikes"},
+          {"key":"tilt"},{"key":"wobble"},{"key":"attack"},{"key":"release"}
+        ]
+      }
+    }
+  }
+}
