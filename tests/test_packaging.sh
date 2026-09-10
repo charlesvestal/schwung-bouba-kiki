@@ -8,5 +8,5 @@ listing="$(tar -tzf "$archive")"
 for file in module.json help.json canvas.js dsp.so LICENSE NOTICE; do
   grep -qx "bouba-kiki/$file" <<<"$listing"
 done
-file dist/bouba-kiki/dsp.so | grep -q 'shared library'
+file dist/bouba-kiki/dsp.so | grep -Eq 'shared library|shared object'
 echo "PASS: packaging"

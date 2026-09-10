@@ -32,15 +32,15 @@ int main(int argc, char **argv) {
     ok(inst != NULL, "creates instance");
     char value[4096];
     ok(api->get_param(inst, "chain_params", value, sizeof(value)) > 0 && strstr(value, "morph"), "serves chain params");
-    ok(occurrences(value, "\"step\":0.01") == 8, "runtime contract serves all knob steps");
-    ok(occurrences(value, "\"default\":") == 8, "runtime contract serves all knob defaults");
+    ok(occurrences(value, "\"step\":0.01") == 15, "runtime contract serves continuous-control steps");
+    ok(occurrences(value, "\"default\":") == 17, "runtime contract serves sixteen controls and preset defaults");
     ok(api->get_param(inst, "ui_hierarchy", value, sizeof(value)) > 0 && strstr(value, "shape"), "serves hierarchy");
-    const char *keys[] = {"morph","bulge","pinch","spikes","tilt","wobble","attack","release"};
-    const double defaults[] = {0.25,0.35,0,0.25,0.5,0.1,0.05,0.25};
+    const char *keys[] = {"morph","bulge","pinch","spikes","tilt","wobble","mod_amount","mod_destination","attack","decay","sustain","release","mod_attack","mod_decay","mod_sustain","mod_release"};
+    const double defaults[] = {0,0,0,0,.5,0,0,0,.05,.25,1,.25,0,.3,0,.2};
     for (unsigned i = 0; i < sizeof(keys)/sizeof(keys[0]); ++i) {
         ok(api->get_param(inst, keys[i], value, sizeof(value)) > 0 && fabs(atof(value)-defaults[i]) < 0.001, "runtime default matches manifest");
         api->set_param(inst, keys[i], "0.73");
-        ok(api->get_param(inst, keys[i], value, sizeof(value)) > 0 && fabs(atof(value)-0.73) < 0.001, keys[i]);
+        ok(api->get_param(inst, keys[i], value, sizeof(value)) > 0 && fabs(atof(value)-(i==7?1:.73)) < 0.001, keys[i]);
     }
     api->set_param(inst, "morph", "garbage");
     api->get_param(inst, "morph", value, sizeof(value));
@@ -55,9 +55,32 @@ int main(int argc, char **argv) {
     ok(api->get_param(inst, "state", state, sizeof(state)) > 0, "serves state");
     void *copy = api->create_instance(".", NULL);
     api->set_param(copy, "state", state);
+    api->get_param(copy,"state",value,sizeof(value));ok(!strcmp(value,state),"all sixteen values round-trip");
     api->get_param(copy, "morph", value, sizeof(value));
     ok(fabs(atof(value)-1.0) < 0.001, "restores state");
     api->destroy_instance(copy);
+    api->set_param(inst,"mod_amount","-0.8");api->get_param(inst,"mod_amount",value,sizeof(value));ok(fabs(atof(value)+.8)<.001,"bipolar modulation amount");
+    api->set_param(inst,"mod_destination","Pinch");api->get_param(inst,"mod_destination",value,sizeof(value));ok(atoi(value)==2,"named modulation destination");
+    const char *presets[]={"Pure Bouba","Kiki Knock","Slow Prickle","Rubber Mouth","Glass Creature","Held Breath"};
+    for(int i=0;i<6;i++){char index[8];snprintf(index,sizeof(index),"%d",i);api->set_param(inst,"preset",index);api->get_param(inst,"preset_name",value,sizeof(value));ok(!strcmp(value,presets[i]),presets[i]);}
+    // The host writes preset 0 before restoring state on every chain load, so
+    // the reported index must follow the values, not the last preset write.
+    api->set_param(inst,"preset","4");
+    api->get_param(inst,"state",state,sizeof(state));
+    void *loaded = api->create_instance(".", NULL);
+    api->set_param(loaded,"preset","0");
+    api->set_param(loaded,"state",state);
+    api->get_param(loaded,"preset",value,sizeof(value));
+    ok(atoi(value)==4,"preset index follows a restored state");
+    api->get_param(loaded,"preset_name",value,sizeof(value));
+    ok(!strcmp(value,"Glass Creature"),"preset name follows a restored state");
+    api->set_param(loaded,"morph","0.123");
+    api->get_param(loaded,"preset_name",value,sizeof(value));
+    ok(!strcmp(value,"Edited"),"an edited preset reports Edited");
+    api->destroy_instance(loaded);
+    api->get_param(inst,"preset_count",value,sizeof(value));
+    ok(atoi(value)==6,"preset count comes from the generated contract");
+    api->set_param(inst,"preset","0");
 
     int16_t out[256] = {0};
     const uint8_t on[] = {0x90, 60, 110}; api->on_midi(inst, on, 3, 0);

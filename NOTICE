@@ -4,3 +4,13 @@ Copyright (c) 2026 Charles Vestal
 This product targets the Schwung module API. Schwung and Ableton Move are
 trademarks of their respective owners; this project is not affiliated with or
 endorsed by Ableton.
+
+Reference contours: Booba-Kiki.svg, drawn by Andrew Dunn (2004), monochrome
+version by Bendz (2007), vectorized by Qef (2008), vertices revised by
+Aselfcallednowhere (2012). Source:
+https://commons.wikimedia.org/wiki/File:Booba-Kiki.svg
+The SVG and derived contour data are CC BY-SA 3.0:
+https://creativecommons.org/licenses/by-sa/3.0/
+Changes: normalized coordinates and sampled curves for a monochrome display
+and interpolation. This attribution and license apply to the contour artwork;
+the software remains MIT licensed.

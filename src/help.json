@@ -1,9 +1,11 @@
 {
   "title": "Bouba-Kiki",
   "children": [
-    {"title":"Overview","lines":["A four-voice additive","shape synthesizer.","The outline and sound","share one harmonic","model."]},
+    {"title":"Overview","lines":["Four stereo voices.","Scan the deformed","Bouba-Kiki contour","to make sound."]},
     {"title":"Playing it","lines":["Play chromatically.","Velocity sets level","and shape pulse size.","Pad pressure adds","Kiki bite without","moving Morph."]},
-    {"title":"Shape controls","lines":["Morph moves from soft","Bouba to sharp Kiki.","Bulge, Pinch, Spikes","and Tilt deform both","outline and spectrum.","Wobble animates both."]},
-    {"title":"Pages","lines":["The Shape page is a","clean live outline.","The next page shows","the same eight controls","as standard knobs."]}
+    {"title":"Shape controls","lines":["Morph: round to sharp","Bulge: inflate lobes","Pinch: squeeze waists","Spikes: grow teeth","Tilt: shear contour","Wobble: moving ripples","Mod Amt: signed depth","Mod Dst: shape target"]},
+    {"title":"Envelopes","lines":["Top row: Amp ADSR.","Bottom row: Mod ADSR.","Each note has both.","Mod moves its target","without changing the","saved knob position.","Pressure still adds","per-note Kiki bite."]},
+    {"title":"Presets","lines":["Six factory sounds.","Pure Bouba is the","undeformed default.","Kiki Knock starts sharp","then rounds off.","Presets replace all","sixteen controls."]},
+    {"title":"Pages","lines":["Shape, shape knobs,","Envelopes, and","Factory Presets.","The outline follows","the newest active note."]}
   ]
 }

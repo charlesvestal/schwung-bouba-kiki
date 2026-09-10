@@ -1,56 +1,39 @@
 #include "shape.h"
 #include <math.h>
-
+#include "contour_tables.h"
 static float clamp01(float v) {
-    if (!isfinite(v)) return 0.0f;
-    if (v < 0.0f) return 0.0f;
-    if (v > 1.0f) return 1.0f;
-    return v;
+    if(!isfinite(v)) return 0;
+    return fmaxf(0,fminf(1,v));
 }
-
 void bk_shape_defaults(bk_shape_params_t *p) {
-    p->morph = 0.25f;
-    p->bulge = 0.35f;
-    p->pinch = 0.0f;
-    p->spikes = 0.25f;
-    p->tilt = 0.5f;
-    p->wobble = 0.1f;
+    *p=(bk_shape_params_t){0,0,0,0,.5f,0};
 }
 
+bk_shape_params_t bk_shape_modulate(const bk_shape_params_t *base,const float depth[6],float envelope,float pressure){
+    bk_shape_params_t p=*base;
+    p.morph+=depth[0]*envelope+.3f*pressure;p.bulge+=depth[1]*envelope;
+    p.pinch+=depth[2]*envelope;p.spikes+=depth[3]*envelope;
+    p.tilt+=depth[4]*envelope;p.wobble+=depth[5]*envelope;
+    bk_shape_clamp(&p);return p;
+}
 void bk_shape_clamp(bk_shape_params_t *p) {
-    p->morph = clamp01(p->morph);
-    p->bulge = clamp01(p->bulge);
-    p->pinch = clamp01(p->pinch);
-    p->spikes = clamp01(p->spikes);
-    p->tilt = clamp01(p->tilt);
-    p->wobble = clamp01(p->wobble);
+    p->morph=clamp01(p->morph);p->bulge=clamp01(p->bulge);
+    p->pinch=clamp01(p->pinch);p->spikes=clamp01(p->spikes);
+    p->tilt=clamp01(p->tilt);p->wobble=clamp01(p->wobble);
 }
 
-void bk_shape_spectrum(const bk_shape_params_t *input, float phase,
-                       float out[BK_PARTIALS]) {
-    bk_shape_params_t p = *input;
-    bk_shape_clamp(&p);
-    const float asym = (p.tilt - 0.5f) * 0.7f;
-    float energy = 0.0f;
-
-    for (int i = 0; i < BK_PARTIALS; ++i) {
-        const float n = (float)(i + 1);
-        const float bouba = expf(-0.31f * (n - 1.0f));
-        const float kiki = powf(n, -0.72f) * (1.0f + 0.16f * sinf(n * 2.37f));
-        float a = bouba + (kiki - bouba) * p.morph;
-
-        a *= 1.0f + p.bulge * 0.45f * expf(-0.045f * (n - 3.0f) * (n - 3.0f));
-        a *= 1.0f - p.pinch * 0.72f * expf(-0.16f * (n - 7.0f) * (n - 7.0f));
-        a *= 1.0f + p.spikes * p.morph * 0.9f * (n / (float)BK_PARTIALS);
-        a *= 1.0f + asym * ((i & 1) ? -1.0f : 1.0f);
-        a *= 1.0f + p.wobble * 0.18f * sinf(phase + n * 0.63f);
-        if (a < 0.0f) a = 0.0f;
-        out[i] = a;
-        energy += a * a;
-    }
-
-    if (energy > 1.0f) {
-        const float gain = 1.0f / sqrtf(energy);
-        for (int i = 0; i < BK_PARTIALS; ++i) out[i] *= gain;
+/* Same geometry as canvas.js. Bounded 256-point work, no FFT or allocation. */
+void bk_contour_build(const bk_shape_params_t *p,float phase,float out[BK_CONTOUR_SIZE][2]) {
+    const float sn=sinf(phase),cs=cosf(phase);
+    for(int i=0;i<BK_CONTOUR_SIZE;i++) {
+        float x=BK_BOUBA[i][0]+(BK_KIKI[i][0]-BK_BOUBA[i][0])*p->morph;
+        float y=BK_BOUBA[i][1]+(BK_KIKI[i][1]-BK_BOUBA[i][1])*p->morph;
+        const float *t=BK_BASIS[i];
+        const float lobe=1+p->bulge*(.65f+1.1f*t[0]);
+        const float warp=lobe*(1+p->spikes*(2.8f*t[2]-.45f))*(1+.7f*p->wobble*(t[3]*cs+t[4]*sn));
+        x*=warp*(1-.93f*p->pinch*(.5f+.5f*t[1]));
+        y*=warp*(1+.6f*p->pinch);
+        x+=2.4f*(p->tilt-.5f)*y;
+        out[i][0]=x;out[i][1]=y;
     }
 }
