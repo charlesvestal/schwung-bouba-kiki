@@ -77,6 +77,18 @@ assert.notEqual(capture('9,0,0,0,0',1000),capture('10,0,0,0,1',1000),
 // knob values, so pressure's deformation shows without waiting for a poll.
 // The offsets stay small enough here that adding them to the page's morph of
 // .5 does not reach the rail, where both would clamp to the same outline.
+// The page is the preset browser, so it must draw the preset name itself --
+// the host draws no list on a merged page.
+{
+  const printed=[];
+  const ctx={width:128,height:48,line(){},print(x,y,t){printed.push(t);},textWidth:(t)=>String(t).length*6};
+  overlay.drawPage(ctx,{values:{...base,preset_name:'Glass Creature',visual:'7,0,0,0'},nowMs:1000});
+  assert(printed.includes('Glass Creature'),'the preset name must be drawn on the shape page');
+  const small={width:128,height:20,line(){},print(x,y,t){printed.push('SMALL:'+t);},textWidth:(t)=>String(t).length*6};
+  const before=printed.length;
+  overlay.drawPage(small,{values:{...base,preset_name:'Glass Creature',visual:'8,0,0,0'},nowMs:1000});
+  assert.equal(printed.length,before,'a short frame gives its rows to the outline, not a caption');
+}
 const telemetry=(id,morph)=>[id,0,0,0,1, morph,0,0,0,.5,0, 0, 0,0,0,0,.5,0].join(',');
 assert.notEqual(capture(telemetry(11,.1),1000),capture(telemetry(12,.4),1000),
   'the offset the DSP reports must reach the drawn contour');

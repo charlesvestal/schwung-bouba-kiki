@@ -18,7 +18,7 @@ params.push({key:'preset',name:'Preset',type:'int',min:0,max:5,step:1,default:0}
  // adding a second one, and preset browsers are emitted before a level's grids
  // -- which is how the instrument lands on its own picture rather than on a
  // page of knobs. monksynth's face page does the same.
- {key:'shape',name:'Shape',short_name:'Shpe',type:'canvas',canvas_script:'canvas.js',as_page:true,preset_browser:true,extra_keys:['visual'],show_value:false});
+ {key:'shape',name:'Shape',short_name:'Shpe',type:'canvas',canvas_script:'canvas.js',as_page:true,preset_browser:true,extra_keys:['visual','preset_name'],show_value:false});
 const hierarchy={pad_layout:'chromatic',levels:{
  root:{label:'Bouba-Kiki',knobs:['morph','bulge','pinch','spikes','tilt','wobble','attack','release'],
   list_param:'preset',count_param:'preset_count',name_param:'preset_name',

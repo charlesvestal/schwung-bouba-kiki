@@ -157,7 +157,8 @@
         "as_page": true,
         "preset_browser": true,
         "extra_keys": [
-          "visual"
+          "visual",
+          "preset_name"
         ],
         "show_value": false
       }

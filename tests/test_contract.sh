@@ -25,7 +25,8 @@ assert not any(k.startswith("mod_") for k in params), "modulation was removed"
 canvas = params["shape"]
 assert canvas["type"] == "canvas" and canvas["as_page"] is True
 assert canvas["canvas_script"] == "canvas.js"
-assert canvas["extra_keys"] == ["visual"]
+# preset_name because the page is its own preset browser and draws the name.
+assert canvas["extra_keys"] == ["visual", "preset_name"]
 assert params["visual"]["access"] == "read"
 
 root = module["ui_hierarchy"]["levels"]["root"]
