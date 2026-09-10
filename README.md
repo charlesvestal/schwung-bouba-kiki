@@ -164,11 +164,20 @@ the wavetable, so the teeth you see at the top of the keyboard are the teeth you
 hear — Spikes at full draws sharp at C3 and visibly rounded at C6. The note's
 frequency rides the telemetry line for that.
 
-The modulator's own contour is deliberately not drawn. Two curves exist in the
-DSP and it is tempting to show both, but every curve here is normalised to fill
-the frame, so the modulator's extra spikes come back the same size as the
-carrier's whole body and the two cross everywhere: a relationship in the
-numbers, a scribble on screen.
+A marker rides the travelling ripple crest whenever Wobble is open — the index
+where `sin(5a + phase)` peaks, so it is a real feature of the curve being drawn
+rather than a decoration, and it moves at the ripple's own 0.15 to 4 Hz. There
+is no marker at rest because there is no ripple to point at.
+
+It is not a scan position. The oscillator crosses this contour about 130 times
+a second at C3 against a display refreshing at tens of frames, so a marker at
+its true place would be an aliasing artifact rather than a playhead.
+
+The modulator's own contour is deliberately not drawn, after four attempts that
+were rendered and looked at. It differs from the carrier only in Spikes, which
+are eleven sharp radial teeth, so a tooth-star lands on top of a smooth blob at
+comparable size — shrunk, inset or on a shared scale, it reads as noise on a
+one-bit display rather than as a relationship.
 
 There is deliberately no scanning playhead. The carrier crosses the contour
 about 130 times a second at C3 against a display refreshing at a few tens of

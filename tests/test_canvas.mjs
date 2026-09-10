@@ -90,6 +90,20 @@ assert.notEqual(capture('9,0,0,0,0',1000),capture('10,0,0,0,1',1000),
   assert.notEqual(seg(130),seg(1500),'a high note must draw a smoother outline than a low one');
   assert.equal(seg(130),seg(200),'below 420 Hz nothing is smoothed, so the outline is identical');
 }
+// The ripple crest marker: present only when there is a ripple, and travelling.
+{
+  const marker=(wobble,t,id)=>{
+    const cells=[];
+    overlay.drawPage({width:110,height:44,fillRect(x,y){cells.push(x+','+y);},line(){}},
+      {values:{...base,morph:.35,spikes:.3,wobble,
+               visual:[id,0,0,0,1,.35,0,0,.3,.5,wobble,0,.35,0,0,.3,.5,wobble,130].join(',')},nowMs:t});
+    return cells.length?cells[4]:null;
+  };
+  assert.equal(marker(0,1000,60),null,'no ripple, nothing to point at');
+  const a=marker(.6,1000,61), b=marker(.6,1600,61);
+  assert(a&&b,'a ripple must carry a crest marker');
+  assert.notEqual(a,b,'the crest must travel with the ripple');
+}
 const telemetry=(id,morph)=>[id,0,0,0,1, morph,0,0,0,.5,0, 0, 0,0,0,0,.5,0].join(',');
 assert.notEqual(capture(telemetry(11,.1),1000),capture(telemetry(12,.4),1000),
   'the offset the DSP reports must reach the drawn contour');
