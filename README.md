@@ -1,14 +1,100 @@
 # Bouba-Kiki for Schwung
 
-A four-voice stereo contour-scanning synthesizer for Ableton Move via Schwung.
-The published **Bouba** and **Kiki** contours are the neutral bases. Six
-geometric controls deform them, including at both Morph endpoints. The DSP scans
-the deformed X/Y contour directly; cross-modulation between contour scans creates
-inharmonic colors. There is no detuned oscillator pair or separate sub oscillator.
+A four-voice stereo **contour synthesizer** for Ableton Move via Schwung. The
+published **Bouba** and **Kiki** silhouettes are the neutral bases; six geometric
+controls deform them. The outline on screen and the sound are the same object:
+the curve you see is the curve the oscillators read.
 
 Version 0.4 adds dual ADSR envelopes, a bipolar per-note modulation routing to
 any shape control, and six factory presets. Version 0.3 replaced the 0.2
 waveform-family engine with direct contour scanning.
+
+## How the engine works
+
+The shape is a closed 2D curve sampled at 256 points, so every point is an
+`(x, y)` pair rather than a single sample. Three things follow from that.
+
+**The curve is the operator waveform.** Each voice runs two phase accumulators
+over the same curve. The second one's Y channel phase-modulates the first one's
+read position, with a one-sample feedback term — two-operator feedback phase
+modulation whose operators are arbitrary geometry instead of sines.
+
+**One shape drives three FM parameters at once.** The geometric controls set the
+operator waveforms, the operator frequency ratio
+(`1 + 0.414*(morph+spikes) + 1.732*pinch`, deliberately irrational) and the
+modulation index (`.025 + .28*spikes + .22*pinch + .1*morph + .2*pressure`)
+together. Sharpening the shape simultaneously changes what the operators play,
+detunes them further from a harmonic ratio, and drives them harder. Ablation
+confirms both halves carry weight — freezing the FM parameters and sweeping only
+the geometry, versus the reverse, measured as spectral-centroid movement:
+
+| control | full engine | geometry only | FM parameters only |
+|---------|------------|---------------|--------------------|
+| Morph   | 1.24x      | 1.13x         | 1.15x              |
+| Pinch   | 3.64x      | 1.25x         | 2.80x              |
+| Spikes  | 10.23x     | 4.90x         | 2.05x              |
+| Bulge   | 1.23x      | 1.44x         | none               |
+| Wobble  | 1.81x      | 2.25x         | none               |
+
+Bulge and Wobble appear in neither formula, so they act purely as waveform
+changes. Morph and Pinch get most of their inharmonic bite from the ratio.
+Spikes is multiplicative in both.
+
+**X and Y are the stereo pair.** The two channels are matrixed to left and right
+(`.85x + .35y` / `.35x + .85y`), so the outline is traced across the stereo field
+the way an oscilloscope in X/Y mode draws it. This is why Tilt, which shears Y
+into X, reads as a change in stereo width rather than brightness.
+
+Everything else is conventional: 4x oversampling through a six-pole lowpass
+before decimation, a DC blocker per channel, linear ADSRs with quadratic time
+mapping, and a rational saturator before the output clamp. There is no detuned
+oscillator pair and no separate sub oscillator.
+
+## Prior art
+
+Most of this engine is established technique, and it is worth being precise
+about which part is not.
+
+The closed 2D curve as a waveform is the **polygonal / geometric oscillator**
+line of work: Chapman & Grierson's n-gon waves (ICMC 2014), Hohnerlein, Rest &
+Smith's continuous-order polygonal synthesis (ICMC 2016, DAFx-17), and Peschke &
+Berndt's Geometric Oscillator (Audio Mostly 2017), whose Cyclone prototype
+already made the edited shape *be* the timbre rather than a picture of it.
+Argentieri & Scagliola's Arbitrary Polygon Oscillator (arXiv:2608.24726, DAFx
+2026) generalizes this to morphing between arbitrary shapes and delivers x and y
+as native stereo channels — the curve-as-waveform and the X/Y stereo pair used
+here, arrived at independently. Further off: scanned synthesis (Verplank,
+Mathews & Shaw, ICMC 2000) scans an evolving mass-spring system as a 1-D mono
+wavetable, and wave terrain synthesis (Mitsuhashi, JAES 1982) orbits a 2-D
+height field.
+
+**E-RM's Polygogo** (2019) is the closest thing shipped, and the fair
+comparison. Its stereo output is taken directly from the polygon's X and Y, its
+Order control sets the ratio of the overtones, and it carries an FM operator
+with its own ratio and index. Every ingredient here is on that front panel.
+
+Two-operator feedback phase modulation with non-sinusoidal or wavetable
+operators is likewise ordinary — Yamaha's RCM in the SY77 (1989) onward, and any
+modern wavetable synth that can point FM at its own table.
+
+What appears not to have been done before is the **coupling**. Polygogo has a
+shape control, an FM ratio and an FM index, but they are three independent
+panel knobs. Here they are one function: the geometry simultaneously defines the
+operator waveforms, the modulator's frequency ratio and the modulation index, so
+a single shape gesture moves timbre, harmonicity and brightness together and
+cannot decouple them. That is a mapping, not a new DSP primitive, and it is the
+only claim worth making.
+
+The bouba/kiki framing rests on real work — Köhler (1929), Ramachandran &
+Hubbard (2001), Adeli, Rouat & Molotchnikoff (2014) on timbre/shape
+correspondence, and Ćwiek et al. (2022), which identifies spectral balance and
+rise time as the governing acoustic parameters. Zacharakis, Velenis &
+Cambouropoulos (CMMR 2025) already used a single slider morphing a contour from
+smooth through rough to spiky as a timbre-matching stimulus. No synthesizer
+appears to have been built on that axis; this one is not the first to notice it.
+
+Yonatan Rozin's "The Contour Synthesizer" (2021) independently uses captured
+object contours as waveforms, and shares this instrument's name.
 
 ## Controls
 
@@ -34,10 +120,10 @@ Velocity controls level and the outline pulse. Polyphonic pad pressure
 temporarily adds Kiki bite without changing the saved Morph value. The outline
 follows the newest active note, drawing the modulation the DSP actually applied.
 
-Each voice's bounded 256-point contour is updated per audio block and
-interpolated during playback. Four-times oversampling and a six-pole lowpass
-reduce scan aliasing; this is not a strictly bandlimited oscillator. Control
-targets settle in roughly 24 ms. The drawing caches geometry, skips duplicate
+Each voice's bounded 256-point contour is rebuilt per audio block and
+crossfaded per sample, so geometry changes do not zipper; control targets settle
+in roughly 24 ms. The oversampling above reduces scan aliasing, but this is not
+a strictly bandlimited oscillator. The drawing caches geometry, skips duplicate
 pixels, and reads one compact telemetry value through Schwung's existing
 staggered cache; direct knob turns are applied to that telemetry immediately, so
 a stale poll never delays a gesture. Note events after the first page draw remain
@@ -59,7 +145,8 @@ Move's ARM64 CPU and creates `dist/bouba-kiki-module.tar.gz`. Use
 Regenerate the source-derived visual and DSP contour tables with
 `node tools/compile_contours.mjs`, and the manifest and its matching DSP
 contract with `node tools/compile_contract.mjs`; generated files are committed so
-a release build does not require Node. `tests/test_generated.sh` checks them. `node tools/preview_shapes.mjs` renders previews.
+a release build does not require Node. `tests/test_generated.sh` checks them.
+`node tools/preview_shapes.mjs` renders previews.
 For audio comparisons, install numpy and run
 `python3 tools/render_sound.py build-host/bouba-kiki-host.so sounds-out --check`.
 The optional spectral checks require numpy and cover the six geometric

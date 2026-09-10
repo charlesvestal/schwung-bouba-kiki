@@ -26,7 +26,7 @@ const presets=[
 const values=presets.map(([,p])=>keys.map((k,i)=>p[k]??defaults[i]));
 const module=JSON.parse(fs.readFileSync('src/module.json','utf8'));
 // The version lives in src/module.json; releases bump it there, not here.
-module.description='Four-voice geometric wavetable synth with dual ADSRs, per-note pressure and six expressive presets.';
+module.description='Contour synth — a shape drives FM operators';
 module.capabilities.chain_params=params;module.ui_hierarchy=hierarchy;
 fs.writeFileSync('src/module.json',JSON.stringify(module,null,2)+'\n');
 const strings=a=>'{'+a.map(x=>JSON.stringify(x)).join(',')+'}';

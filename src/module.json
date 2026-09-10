@@ -2,7 +2,7 @@
   "id": "bouba-kiki",
   "name": "Bouba-Kiki",
   "version": "0.4.0",
-  "description": "Four-voice geometric wavetable synth with dual ADSRs, per-note pressure and six expressive presets.",
+  "description": "Contour synth — a shape drives FM operators",
   "author": "Charles Vestal",
   "component_type": "sound_generator",
   "abbrev": "BK",
