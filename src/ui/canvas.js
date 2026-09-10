@@ -129,24 +129,6 @@
             }
             const p=st.points;
             for(let i=0;i<p.length;i++){const a=p[i],b=p[(i+1)%p.length];line(ctx,a[0],a[1],b[0],b[1]);}
-            /* A marker on the travelling ripple crest.
-               Not a scan position: the oscillator crosses this contour about
-               130 times a second at C3 against a display refreshing at tens of
-               frames, so a marker at its true place would sample far above the
-               frame rate and show an aliasing artifact. The ripple is the one
-               thing here moving slowly enough to watch -- 0.15 Hz at rest,
-               under 4 Hz wide open -- and its crest is a real feature of the
-               curve being drawn, at the index where sin(5a + phase) peaks.
-               No ripple, no marker: there would be nothing to point at. */
-            if(wobble<=0)return;
-            const crest=Math.round(((1.5707963-phase)/5/TAU%1+1)%1*p.length)%p.length;
-            const at=p[crest];
-            for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
-                const x=at[0]+dx,y=at[1]+dy;
-                if(x<0||y<0||x>=ctx.width||y>=ctx.height)continue;
-                if(typeof ctx.fillRect==='function')ctx.fillRect(x,y,1,1,1);
-                else line(ctx,x,y,x+1,y);
-            }
         }
     };
     globalThis.BOUBA_KIKI_SHAPE_FOR_TEST=(v,t,w,h)=>shapePoints(v,t*.001,w,h,0);
