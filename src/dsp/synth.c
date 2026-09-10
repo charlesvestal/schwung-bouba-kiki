@@ -26,14 +26,22 @@ static void band_limit(float c[BK_CONTOUR_SIZE][2],float hz) {
     if(width<2)return;
     if(width>BK_CONTOUR_SIZE/4)width=BK_CONTOUR_SIZE/4;
     float tmp[BK_CONTOUR_SIZE][2];
+    const int half=width/2;
+    const float inv=1.0f/(float)width;
     for(int pass=0;pass<2;pass++){
+        /* Sliding sum: each output costs one add and one subtract regardless of
+           width. The naive form was O(width) per point, which at the top of the
+           keyboard is where the widths are widest and the voice count hurts. */
+        float sx=0,sy=0;
+        for(int k=0;k<width;k++){
+            const int j=(k-half)&(BK_CONTOUR_SIZE-1);
+            sx+=c[j][0];sy+=c[j][1];
+        }
         for(int i=0;i<BK_CONTOUR_SIZE;i++){
-            float sx=0,sy=0;
-            for(int k=0;k<width;k++){
-                const int j=(i+k-width/2)&(BK_CONTOUR_SIZE-1);
-                sx+=c[j][0];sy+=c[j][1];
-            }
-            tmp[i][0]=sx/width;tmp[i][1]=sy/width;
+            tmp[i][0]=sx*inv;tmp[i][1]=sy*inv;
+            const int drop=(i-half)&(BK_CONTOUR_SIZE-1);
+            const int add=(i-half+width)&(BK_CONTOUR_SIZE-1);
+            sx+=c[add][0]-c[drop][0];sy+=c[add][1]-c[drop][1];
         }
         memcpy(c,tmp,sizeof(tmp));
     }

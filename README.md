@@ -37,14 +37,22 @@ apart in frequency and drives them harder in a single gesture:
 ```
 index = (.025 + .3*morph + .28*spikes + .22*pinch
          + .2*bulge + .2*pressure) * keytrack
-ratio = 1 + 0.414*spikes + 1.732*pinch
+ratio = 2 + 0.414*spikes + 1.732*pinch
 ```
 
 The ratio is free-running and irrational, and only Spikes and Pinch reach it.
-Two operators at an irrational ratio share no period, so the composite is
-aperiodic and the ear stops hearing a definite pitch — that clangorous quality
-is what the instrument is for, and at full Pinch the off-harmonic energy is
-0.75 with periodicity at the fundamental down at 0.06.
+Two operators at an irrational ratio produce partials that never line up into a
+harmonic series, which is the clangorous quality the instrument is for: at full
+Pinch the off-harmonic energy is 0.68.
+
+It starts at 2 rather than 1, and that is the difference between metallic and
+out of tune. Sidebands land at `f*(1 - n*ratio)`, so for a ratio between 1 and 2
+the first of them falls *below* the fundamental and takes the perceived pitch
+with it — Pinch at 0.5 put the lowest strong partial 246 cents flat, and Spikes
+at 1.0 put it 1508 cents flat. From 2 upwards every sideband folds back above
+the fundamental. Measured across the full travel of both controls, the lowest
+strong partial now sits on the note to within a cent, and the note's own
+fundamental is the strongest partial throughout.
 
 What matters is which controls are allowed to do that. Morph is the primary
 axis and pressure is a continuous gesture under a held note, so either one

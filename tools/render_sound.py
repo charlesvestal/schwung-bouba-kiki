@@ -95,6 +95,18 @@ for destination,name in enumerate(GEOMETRY):
 # Pinch and Spikes drive the operator ratio irrational on purpose, so their
 # sidebands legitimately fall below the fundamental and cannot be told apart
 # from folding by this measure. Neutral Bouba is harmonic and must stay clean.
+# Inharmonic, but still on the note: Pinch and Spikes must not put significant
+# energy below the fundamental, or the pitch is heard as flat rather than as
+# metallic. This is why the operator ratio starts at 2 -- below that the first
+# sideband lands under the fundamental and drags the pitch with it.
+for name,shape in [('pinch',dict(base,pinch=.5)),('pinch_full',dict(base,pinch=1)),
+                   ('spikes',dict(base,spikes=.5)),('spikes_full',dict(base,spikes=1))]:
+    f0=440*2**((48-69)/12)
+    a,_=render(shape,seconds=1.5)
+    m=a[len(a)//2:].mean(axis=1)
+    sp=np.abs(np.fft.rfft(m*np.hanning(len(m))))**2;f=np.fft.rfftfreq(len(m),1/RATE)
+    below=float(sp[(f>40)&(f<f0*.93)].sum());total=float(sp[f>40].sum())
+    report['below_fundamental_'+name]=round(100*below/max(1e-12,total),3)
 for note in (60,72,84,96):
     f0=440*2**((note-69)/12)
     a,_=render(dict(base),seconds=1.2,notes=(note,))
@@ -137,6 +149,8 @@ if '--check' in sys.argv:
     for name in GEOMETRY:
         r=report['mod_'+name]
         assert moved(r['early'],r['late']), 'modulating '+name+' must change the tone during a held note'
+    for name in ('pinch','pinch_full','spikes','spikes_full'):
+        assert report['below_fundamental_'+name]<2.0, name+' pushes the perceived pitch below the note'
     for note in (60,72,84,96):
         assert report['alias_note_%d'%note]<0.5, 'note %d folds partials below its fundamental'%note
     print('PASS: six geometric ranges, both envelopes, every modulation destination, six presets and no folded partials')

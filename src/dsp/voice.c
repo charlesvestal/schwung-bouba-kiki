@@ -74,15 +74,21 @@ void bk_voice_render(bk_voice_t *v,const bk_shape_params_t *p,
     // louder -- and the index is already this engine's brightness control.
     const float touch=.4f+.6f*v->velocity;
     const float index=(.025f+.28f*p->spikes+.22f*p->pinch+.3f*p->morph+.2f*p->bulge+.2f*v->pressure)*keytrack*touch;
-    // Free-running, and driven by Spikes and Pinch alone. Two operators at an
-    // irrational ratio share no period, so the composite is aperiodic and the
-    // ear stops hearing a definite pitch -- which IS the clangorous character
-    // this instrument is for. Keeping Morph out of it (and therefore pressure,
-    // which reaches the shape through Morph) confines that to two controls, so
-    // the morph axis and the pad gesture stay in tune. Quantising the ratio was
-    // tried instead and cost the character everywhere without being needed on
-    // the two controls that stay clean anyway.
-    const float ratio=1+.41421356f*tonal.spikes+1.7320508f*tonal.pinch;
+    // Free-running and irrational, driven by Spikes and Pinch alone. Two
+    // operators at an irrational ratio share no period, so the partials stop
+    // lining up into a harmonic series -- which is the clangorous character
+    // this instrument is for. Morph is kept out of it, and therefore pressure
+    // too since pressure reaches the shape through Morph, so the primary axis
+    // and the pad gesture stay strictly in tune.
+    //
+    // The range starts at 2, not 1. Sidebands sit at f*(1 - n*ratio); for a
+    // ratio between 1 and 2 the first of them lands BELOW the fundamental and
+    // drags the perceived pitch down with it -- measured, Pinch at 0.5 put the
+    // lowest strong partial 246 cents flat and Spikes at 1.0 put it 1508 cents
+    // flat. From 2 upwards every sideband folds back above the fundamental, so
+    // the note keeps its pitch while the partials between are as inharmonic as
+    // before. Metallic, not detuned.
+    const float ratio=2+1.41421356f*tonal.spikes+1.7320508f*tonal.pinch;
     for(int os=0;os<4;os++){
         v->phase_a=wrap(v->phase_a+v->increment*.25f);
         v->phase_b=wrap(v->phase_b+v->increment*.25f*ratio);
