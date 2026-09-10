@@ -71,5 +71,12 @@ assert.equal(capture('8,0,0,0',1400),resting,'independent instance has no pulse'
 assert.equal(capture('7,1,1,0',2500),settled,'unchanged state is stable');
 assert.notEqual(capture('9,0,0,0,0',1000),capture('10,0,0,0,1',1000),
   'the live amplitude envelope must expand and relax the outline');
-const telemetry=(id,morph)=>[id,0,0,0,1,1,morph,0,0,0,.5,0,0,.5,0,0,0,.5,0].join(',');
-assert.notEqual(capture(telemetry(11,.5),1000),capture(telemetry(12,1),1000),'DSP modulation offsets change the displayed contour');
+// id, serial, velocity, pressure, envelope, then the six shape values as the
+// DSP actually applied them, the ripple phase, and the six knob values it
+// started from: 18 fields. The drawing adds the difference to its own fresh
+// knob values, so pressure's deformation shows without waiting for a poll.
+// The offsets stay small enough here that adding them to the page's morph of
+// .5 does not reach the rail, where both would clamp to the same outline.
+const telemetry=(id,morph)=>[id,0,0,0,1, morph,0,0,0,.5,0, 0, 0,0,0,0,.5,0].join(',');
+assert.notEqual(capture(telemetry(11,.1),1000),capture(telemetry(12,.4),1000),
+  'the offset the DSP reports must reach the drawn contour');

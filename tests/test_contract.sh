@@ -17,12 +17,11 @@ caps = module["capabilities"]
 for key in ("chainable", "audio_out", "midi_in", "aftertouch"):
     assert caps[key] is True
 
-expected = ["morph", "bulge", "pinch", "spikes", "tilt", "wobble", "mod_amount", "mod_destination"]
+expected = ["morph", "bulge", "pinch", "spikes", "tilt", "wobble", "attack", "release"]
 params = {p["key"]: p for p in caps["chain_params"]}
 assert all(k in params for k in expected)
-assert all(params[k]["type"] == "float" for k in expected[:-1])
-assert params['mod_destination']['type']=='enum'
-assert params['mod_amount']['min']==-1
+assert all(params[k]["type"] == "float" for k in expected)
+assert not any(k.startswith("mod_") for k in params), "modulation was removed"
 canvas = params["shape"]
 assert canvas["type"] == "canvas" and canvas["as_page"] is True
 assert canvas["canvas_script"] == "canvas.js"
@@ -34,15 +33,13 @@ assert module["ui_hierarchy"]["pad_layout"] == "chromatic"
 assert root["knobs"] == expected
 assert root["params"][0] == {"key": "shape"}
 assert [p["key"] for p in root["params"][1:9]] == expected
-# Both envelopes must declare their viz group. The detector finds the amp ADSR
-# on its own but will not merge a second envelope, so without these the mod row
-# silently draws as four unrelated knobs instead of an envelope.
+# The amp ADSR declares its viz group rather than relying on the detector, per
+# docs/MODULES.md: detection is the fallback, declaring is the contract.
 viz={p['key']:p.get('viz') for p in caps['chain_params']}
 for k in ['attack','decay','sustain','release']:
     assert viz[k]=={'group':'amp','role':k}, (k,viz[k])
-    assert viz['mod_'+k]=={'group':'mod','role':k}, ('mod_'+k,viz['mod_'+k])
-env=module['ui_hierarchy']['levels']['envelopes']
-assert env['knobs']==['attack','decay','sustain','release','mod_attack','mod_decay','mod_sustain','mod_release']
+env=module['ui_hierarchy']['levels']['envelope']
+assert env['knobs']==['attack','decay','sustain','release']
 assert module['ui_hierarchy']['levels']['presets']['list_param']=='preset'
 assert help_doc["title"] == "Bouba-Kiki"
 assert help_doc.get("children") and all(p.get("lines") for p in help_doc["children"])

@@ -1,32 +1,34 @@
 // Single source for the module manifest and its runtime DSP contract.
 import fs from 'node:fs';
-const keys=['morph','bulge','pinch','spikes','tilt','wobble','mod_amount','mod_destination','attack','decay','sustain','release','mod_attack','mod_decay','mod_sustain','mod_release'];
-const names=['Morph','Bulge','Pinch','Spikes','Tilt','Wobble','Mod Amount','Mod Destination','Amp Attack','Amp Decay','Amp Sustain','Amp Release','Mod Attack','Mod Decay','Mod Sustain','Mod Release'];
-const short=['Mrph','Blge','Pnch','Spke','Tilt','Wobl','M Amt','M Dst','A Atk','A Dec','A Sus','A Rel','M Atk','M Dec','M Sus','M Rel'];
-const defaults=[0,0,0,0,.5,0,0,0,.05,.25,1,.25,0,.3,0,.2];
-const min=keys.map(k=>k==='mod_amount'?-1:0),max=keys.map(k=>k==='mod_destination'?5:1);
-const destinations=['Morph','Bulge','Pinch','Spikes','Tilt','Wobble'];
-// Declare both envelopes explicitly. The detector finds the amp ADSR by its
-// role words but deliberately will not merge a second envelope whose keys
-// share nothing beyond those words, so the mod row drew as four plain knobs.
-const envelopeViz={attack:['amp','attack'],decay:['amp','decay'],sustain:['amp','sustain'],release:['amp','release'],
- mod_attack:['mod','attack'],mod_decay:['mod','decay'],mod_sustain:['mod','sustain'],mod_release:['mod','release']};
-const params=keys.map((key,i)=>({key,name:names[i],short_name:short[i],type:i===7?'enum':'float',min:min[i],max:max[i],step:i===7?1:.01,default:defaults[i],...(i===7?{options:destinations}: {}),...(envelopeViz[key]?{viz:{group:envelopeViz[key][0],role:envelopeViz[key][1]}}:{})}));
+// Ten controls: six geometric, four for the amplitude envelope. A per-note
+// modulation envelope with a routable destination lived here and was removed --
+// the two controls worth modulating, Pinch and Spikes, carry their character in
+// the operator ratio, and moving that under a held note is heard as a
+// glissando rather than as timbre. See the removal commit.
+const keys=['morph','bulge','pinch','spikes','tilt','wobble','attack','decay','sustain','release'];
+const names=['Morph','Bulge','Pinch','Spikes','Tilt','Wobble','Attack','Decay','Sustain','Release'];
+const short=['Mrph','Blge','Pnch','Spke','Tilt','Wobl','Atk','Dec','Sus','Rel'];
+const defaults=[0,0,0,0,.5,0,.05,.25,1,.25];
+const min=keys.map(()=>0),max=keys.map(()=>1);
+const envelopeViz={attack:'attack',decay:'decay',sustain:'sustain',release:'release'};
+const params=keys.map((key,i)=>({key,name:names[i],short_name:short[i],type:'float',min:min[i],max:max[i],step:.01,default:defaults[i],...(envelopeViz[key]?{viz:{group:'amp',role:envelopeViz[key]}}:{})}));
 params.push({key:'preset',name:'Preset',type:'int',min:0,max:5,step:1,default:0},
  {key:'visual',name:'Activity',type:'string',access:'read'},
  {key:'shape',name:'Shape',short_name:'Shpe',type:'canvas',canvas_script:'canvas.js',as_page:true,extra_keys:['visual'],show_value:false});
 const hierarchy={pad_layout:'chromatic',levels:{
- root:{label:'Bouba-Kiki',knobs:keys.slice(0,8),params:[{key:'shape'},...keys.slice(0,8).map(key=>({key})),{level:'envelopes',label:'Envelopes'},{level:'presets',label:'Factory Presets'}]},
- envelopes:{label:'Envelopes',knobs:keys.slice(8),params:keys.slice(8).map(key=>({key}))},
+ root:{label:'Bouba-Kiki',knobs:['morph','bulge','pinch','spikes','tilt','wobble','attack','release'],
+  params:[{key:'shape'},...['morph','bulge','pinch','spikes','tilt','wobble','attack','release'].map(key=>({key})),
+   {level:'envelope',label:'Envelope'},{level:'presets',label:'Factory Presets'}]},
+ envelope:{label:'Envelope',knobs:['attack','decay','sustain','release'],params:['attack','decay','sustain','release'].map(key=>({key}))},
  presets:{label:'Factory Presets',list_param:'preset',count_param:'preset_count',name_param:'preset_name',knobs:[]}
 }};
 const presets=[
  ['Pure Bouba',{}],
- ['Kiki Knock',{mod_amount:1,attack:0,decay:.2,sustain:.55,release:.15,mod_decay:.2}],
- ['Slow Prickle',{attack:.5,release:.5,mod_destination:3,mod_amount:.85,mod_attack:.65,mod_decay:.3,mod_sustain:.7,mod_release:.4}],
- ['Rubber Mouth',{bulge:.25,mod_destination:2,mod_amount:.8,mod_attack:.08,mod_decay:.35,mod_sustain:.15,release:.3}],
- ['Glass Creature',{morph:.85,spikes:.25,mod_amount:-.45,mod_attack:.3,mod_sustain:.5,attack:.025,decay:.45,sustain:.25,release:.8,mod_release:.7}],
- ['Held Breath',{bulge:.08,attack:.3,release:.6,mod_destination:5,mod_amount:.4,mod_attack:.4,mod_decay:.5,mod_sustain:.3}]
+ ['Kiki Knock',{morph:.8,spikes:.45,attack:0,decay:.2,sustain:.3,release:.15}],
+ ['Slow Prickle',{spikes:.7,pinch:.2,attack:.5,decay:.5,sustain:.8,release:.5}],
+ ['Rubber Mouth',{bulge:.55,pinch:.45,attack:.08,decay:.35,sustain:.5,release:.3}],
+ ['Glass Creature',{morph:.85,spikes:.25,pinch:.6,attack:.025,decay:.45,sustain:.25,release:.8}],
+ ['Held Breath',{bulge:.08,morph:.3,wobble:.35,attack:.3,decay:.5,sustain:.9,release:.6}]
 ];
 const values=presets.map(([,p])=>keys.map((k,i)=>p[k]??defaults[i]));
 const module=JSON.parse(fs.readFileSync('src/module.json','utf8'));
@@ -39,16 +41,15 @@ const floats=a=>'{'+a.map(x=>Number(x).toFixed(6)+'f').join(',')+'}';
 fs.writeFileSync('src/dsp/contract.h',`/* Generated by tools/compile_contract.mjs. */
 #ifndef BK_CONTRACT_H
 #define BK_CONTRACT_H
-#define BK_PARAM_COUNT 16
+#define BK_PARAM_COUNT 10
 #define BK_PRESET_COUNT 6
-static const char *const KEYS[16]=${strings(keys)};
-static const float DEFAULTS[16]=${floats(defaults)};
-static const float MINIMUM[16]=${floats(min)},MAXIMUM[16]=${floats(max)};
-static const char *const DESTINATIONS[6]=${strings(destinations)};
+static const char *const KEYS[10]=${strings(keys)};
+static const float DEFAULTS[10]=${floats(defaults)};
+static const float MINIMUM[10]=${floats(min)},MAXIMUM[10]=${floats(max)};
 static const char *const PRESET_NAMES[6]=${strings(presets.map(p=>p[0]))};
-static const float PRESET_VALUES[6][16]={${values.map(floats).join(',\n')}};
+static const float PRESET_VALUES[6][10]={${values.map(floats).join(',\n')}};
 static const char CHAIN_PARAMS[]=${JSON.stringify(JSON.stringify(params))};
 static const char UI_HIERARCHY[]=${JSON.stringify(JSON.stringify(hierarchy))};
 #endif
 `);
-console.log('Compiled 16 controls, dual-envelope page and six presets');
+console.log('Compiled 10 controls, one envelope page and six presets');

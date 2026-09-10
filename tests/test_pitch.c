@@ -25,8 +25,8 @@ static float periodicity(bk_synth_t *s,float hz){
 }
 static float run(bk_shape_params_t p,int pressure){
     bk_synth_t s;bk_synth_init(&s,RATE);
-    bk_adsr_t amp={0,.25f,1,.25f},mod={0,.3f,0,.2f};
-    bk_synth_set_envelopes(&s,&amp,&mod);
+    bk_adsr_t amp={0,.25f,1,.25f};
+    bk_synth_set_envelopes(&s,&amp);
     bk_synth_set_shape(&s,&p);
     bk_synth_note_on(&s,48,110);
     if(pressure)bk_synth_pressure(&s,48,pressure);

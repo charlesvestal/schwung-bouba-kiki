@@ -17,8 +17,7 @@
         "Velocity sets level",
         "and brightness.",
         "Pad pressure adds",
-        "Kiki bite without",
-        "moving Morph.",
+        "bite and swell.",
         "Pinch and Spikes",
         "blur the pitch on",
         "purpose; Morph and",
@@ -26,7 +25,7 @@
       ]
     },
     {
-      "title": "Shape controls",
+      "title": "Shape",
       "lines": [
         "Morph: round to sharp",
         "Bulge: inflate lobes",
@@ -34,21 +33,19 @@
         "Spikes: grow teeth",
         "Tilt: shear contour",
         "Wobble: moving ripples",
-        "Mod Amt: signed depth",
-        "Mod Dst: shape target"
+        "Attack and Release",
+        "sit beside them."
       ]
     },
     {
-      "title": "Envelopes",
+      "title": "Envelope",
       "lines": [
-        "Top row: Amp ADSR.",
-        "Bottom row: Mod ADSR.",
-        "Each note has both.",
-        "Mod moves its target",
-        "without changing the",
-        "saved knob position.",
-        "Pressure still adds",
-        "per-note Kiki bite."
+        "One ADSR for level.",
+        "Attack and Release",
+        "also appear on the",
+        "shape page for quick",
+        "reach; Decay and",
+        "Sustain live here."
       ]
     },
     {
@@ -57,20 +54,17 @@
         "Six factory sounds.",
         "Pure Bouba is the",
         "undeformed default.",
-        "Kiki Knock starts sharp",
-        "then rounds off.",
         "Presets replace all",
-        "sixteen controls."
+        "ten controls."
       ]
     },
     {
       "title": "Pages",
       "lines": [
-        "Shape, shape knobs,",
-        "Envelopes, and",
+        "Shape, Envelope and",
         "Factory Presets.",
         "The outline follows",
-        "the newest active note."
+        "the newest note."
       ]
     }
   ]

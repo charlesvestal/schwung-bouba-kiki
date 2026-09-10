@@ -53,8 +53,7 @@ static float filter(bk_voice_t *v,float x,int ch){
     return x;
 }
 void bk_voice_render(bk_voice_t *v,const bk_shape_params_t *p,
-                     const bk_adsr_t *amp,const bk_adsr_t *mod,float motion,
-                     const float mod_depth[6],
+                     const bk_adsr_t *amp,float motion,
                      const float previous[BK_CONTOUR_SIZE][2],
                      const float next[BK_CONTOUR_SIZE][2],
                      const float mod_previous[BK_CONTOUR_SIZE][2],
@@ -64,10 +63,9 @@ void bk_voice_render(bk_voice_t *v,const bk_shape_params_t *p,
     v->pressure+=(v->target_pressure-v->pressure)*v->slew;
     const int gate=v->held||v->min_gate>0;
     if(v->min_gate>0)v->min_gate--;
-    bk_envelope_gate(&v->amp_env,gate);bk_envelope_gate(&v->mod_env,gate);
+    bk_envelope_gate(&v->amp_env,gate);
     bk_adsr_t pressure_amp=*amp;pressure_amp.attack*=1-.65f*v->pressure;
     v->envelope=bk_envelope_tick(&v->amp_env,&pressure_amp,v->sample_rate);
-    bk_envelope_tick(&v->mod_env,mod,v->sample_rate);
     if(!gate&&v->amp_env.stage==BK_ENV_IDLE){v->active=0;v->last_output[0]=v->last_output[1]=0;return;}
     // The ratio is taken from the knobs alone -- not from the modulation
     // envelope, and not from pressure. Both of those move during a note, and
@@ -77,7 +75,7 @@ void bk_voice_render(bk_voice_t *v,const bk_shape_params_t *p,
     // timbre one. Held still, the partials stay put and the envelope is heard
     // as the shape changing, which is what it is.
     const bk_shape_params_t knobs=*p;
-    const bk_shape_params_t effective=bk_shape_modulate(p,mod_depth,v->mod_env.level,v->pressure);
+    const bk_shape_params_t effective=bk_shape_modulate(p,v->pressure);
     p=&effective;
     float l=0,r=0;
     // Key-track the index. The modulator is a whole contour, not a sine, so its

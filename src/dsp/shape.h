@@ -13,7 +13,7 @@ typedef struct bk_shape_params {
 
 void bk_shape_defaults(bk_shape_params_t *p);
 void bk_shape_clamp(bk_shape_params_t *p);
-bk_shape_params_t bk_shape_modulate(const bk_shape_params_t *base,const float depth[6],float envelope,float pressure);
+bk_shape_params_t bk_shape_modulate(const bk_shape_params_t *base,float pressure);
 #define BK_CONTOUR_SIZE 256
 void bk_contour_build(const bk_shape_params_t *p,float phase,float out[BK_CONTOUR_SIZE][2]);
 

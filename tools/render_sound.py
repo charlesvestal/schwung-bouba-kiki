@@ -23,9 +23,8 @@ outdir=pathlib.Path(sys.argv[2]);outdir.mkdir(parents=True,exist_ok=True)
 RATE=44100
 # The shipped defaults: neutral Bouba with a sustaining amplitude envelope and
 # no modulation. Every sweep below moves exactly one control away from this.
-base=dict(morph=0,bulge=0,pinch=0,spikes=0,tilt=.5,wobble=0,mod_amount=0,mod_destination=0,
-          attack=.05,decay=.25,sustain=1,release=.25,
-          mod_attack=0,mod_decay=.3,mod_sustain=0,mod_release=.2)
+base=dict(morph=0,bulge=0,pinch=0,spikes=0,tilt=.5,wobble=0,
+          attack=.05,decay=.25,sustain=1,release=.25)
 GEOMETRY=['morph','bulge','pinch','spikes','tilt','wobble']
 def render(params,seconds=2,notes=(48,),sweep=None,hold=None):
     """Render one take. `hold` releases the notes that many seconds in."""
@@ -84,12 +83,6 @@ save('release_short',short);save('release_long',long)
 tail=slice(int(1.25*RATE),int(2.5*RATE))
 report['release']=dict(short_tail_db=round(float(20*np.log10(rms(short[tail])+1e-12)),2),
                        long_tail_db=round(float(20*np.log10(rms(long[tail])+1e-12)),2))
-# Modulation: a slow mod envelope must move its destination during a held note.
-for destination,name in enumerate(GEOMETRY):
-    a,_=render(dict(base,mod_destination=destination,mod_amount=1,mod_attack=.7,mod_sustain=1),seconds=2)
-    save('mod_'+name,a)
-    early=a[int(.05*RATE):int(.35*RATE)];late=a[int(1.4*RATE):int(1.9*RATE)]
-    report['mod_'+name]=dict(early=metrics(early),late=metrics(late))
 # Aliasing, measured on the NEUTRAL shape only. Energy below the fundamental
 # is the test, and that is only meaningful where the spectrum is harmonic:
 # Pinch and Spikes drive the operator ratio irrational on purpose, so their
@@ -146,11 +139,8 @@ if '--check' in sys.argv:
         assert abs(r['low']['rms_db']-r['high']['rms_db'])<6, key+' loses too much body'
     assert report['attack']['slow_onset_s']>report['attack']['fast_onset_s']+.3, 'Amp Attack must stretch the onset'
     assert report['release']['long_tail_db']>report['release']['short_tail_db']+12, 'Amp Release must hold the tail'
-    for name in GEOMETRY:
-        r=report['mod_'+name]
-        assert moved(r['early'],r['late']), 'modulating '+name+' must change the tone during a held note'
     for name in ('pinch','pinch_full','spikes','spikes_full'):
         assert report['below_fundamental_'+name]<2.0, name+' pushes the perceived pitch below the note'
     for note in (60,72,84,96):
         assert report['alias_note_%d'%note]<0.5, 'note %d folds partials below its fundamental'%note
-    print('PASS: six geometric ranges, both envelopes, every modulation destination, six presets and no folded partials')
+    print('PASS: six geometric ranges, the amp envelope, six presets, no folded partials and nothing under the fundamental')

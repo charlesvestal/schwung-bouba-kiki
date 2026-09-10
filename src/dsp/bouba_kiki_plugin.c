@@ -35,16 +35,14 @@ static int key_index(const char *key) {
 }
 static float constrain(int i, float x) {
   x = fmaxf(MINIMUM[i], fminf(MAXIMUM[i], x));
-  return i == 7 ? roundf(x) : x;
+  return x;
 }
 static void apply_values(bk_instance_t *in) {
   float *v = in->values;
   bk_shape_params_t p = {v[0], v[1], v[2], v[3], v[4], v[5]};
-  bk_adsr_t amp = {v[8], v[9], v[10], v[11]},
-            mod = {v[12], v[13], v[14], v[15]};
+  bk_adsr_t amp = {v[6], v[7], v[8], v[9]};
   bk_synth_set_shape(&in->synth, &p);
-  bk_synth_set_envelopes(&in->synth, &amp, &mod);
-  bk_synth_set_modulation(&in->synth, v[6], (int)v[7]);
+  bk_synth_set_envelopes(&in->synth, &amp);
 }
 static int parse_number(const char *val, float *value) {
   if (!val)
@@ -63,14 +61,6 @@ static int parse_number(const char *val, float *value) {
 }
 static void set_one(bk_instance_t *in, int i, const char *val) {
   float x;
-  if (i == 7 && val) {
-    for (int n = 0; n < 6; n++)
-      if (!strcmp(val, DESTINATIONS[n])) {
-        in->values[i] = n;
-        apply_values(in);
-        return;
-      }
-  }
   if (parse_number(val, &x)) {
     in->values[i] = constrain(i, x);
     apply_values(in);
@@ -224,21 +214,19 @@ static int get_param(void *ptr, const char *key, char *buf, int len) {
         selected = v;
     }
     bk_shape_params_t p = in->synth.shape;
-    float env = 0, mod = 0, pressure = 0;
+    float env = 0, pressure = 0;
     if (selected) {
       env = selected->envelope;
-      mod = selected->mod_env.level;
       pressure = selected->pressure;
-      p = bk_shape_modulate(&in->synth.current, in->synth.mod_depth, mod,
-                            pressure);
+      p = bk_shape_modulate(&in->synth.current, pressure);
     }
     const bk_shape_params_t *base =
         selected ? &in->synth.current : &in->synth.shape;
     snprintf(t, sizeof(t),
              "%u,%u,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%."
-             "4f,%.4f,%.4f,%.4f,%.4f,%.4f",
+             "4f,%.4f,%.4f,%.4f,%.4f",
              in->identity, in->note_serial, in->note_velocity, pressure, env,
-             mod, p.morph, p.bulge, p.pinch, p.spikes, p.tilt, p.wobble,
+             p.morph, p.bulge, p.pinch, p.spikes, p.tilt, p.wobble,
              in->synth.wobble_phase, base->morph, base->bulge, base->pinch,
              base->spikes, base->tilt, base->wobble);
     return copy_string(buf, len, t);

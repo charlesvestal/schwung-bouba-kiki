@@ -5,9 +5,12 @@ published **Bouba** and **Kiki** silhouettes are the neutral bases; six geometri
 controls deform them. The outline on screen and the sound are the same object:
 the curve you see is the curve the oscillators read.
 
-Version 0.4 adds dual ADSR envelopes, a bipolar per-note modulation routing to
-any shape control, and six factory presets. Version 0.3 replaced the 0.2
-waveform-family engine with direct contour scanning.
+Version 0.4 adds an amplitude ADSR, six factory presets and six voices. A
+per-note modulation envelope with a routable destination was built and then
+removed: the two controls worth modulating carry their character in the
+operator ratio, and moving that under a held note is heard as a glissando
+rather than as timbre. Version 0.3 replaced the 0.2 waveform-family engine
+with direct contour scanning.
 
 ## How the engine works
 
@@ -130,40 +133,31 @@ object contours as waveforms, and shares this instrument's name.
 
 ## Controls
 
-Sixteen controls across four pages.
+Ten controls across three pages.
 
-**Shape** — the live outline, and the same six geometric controls as ordinary
-knobs plus the modulation routing: Morph, Bulge, Pinch, Spikes, Tilt, Wobble,
-Mod Amount, Mod Destination.
+**Shape** — the live outline, and the six geometric controls as ordinary knobs
+alongside Attack and Release: Morph, Bulge, Pinch, Spikes, Tilt, Wobble.
 
 Morph interpolates the base contours. Bulge inflates lobes; Pinch squeezes deep
 waists; Spikes grows narrow teeth; Tilt shears the contour; Wobble sends ripples
 around it. The reference silhouettes are exact with the other controls neutral
 (zero, except Tilt at 0.5), which is also the shipped default.
 
-**Envelopes** — Amp ADSR on the top row, Mod ADSR on the bottom. Every note runs
-both. The Mod envelope drives Mod Destination by the signed Mod Amount, moving
-the shape per note without changing the saved knob position.
+Pinch and Spikes are the two that reach the operator ratio, so they are the two
+that make the sound inharmonic — and the two that stay put while a note sounds.
+Morph, Bulge, Tilt and Wobble hold the pitch exactly.
+
+**Envelope** — one ADSR for level, drawn as a graph. Attack and Release also sit
+on the shape page for quick reach; Decay and Sustain live here.
 
 **Factory Presets** — six sounds: Pure Bouba, Kiki Knock, Slow Prickle, Rubber
-Mouth, Glass Creature, Held Breath. Selecting one replaces all sixteen values.
+Mouth, Glass Creature, Held Breath. Selecting one replaces all ten values.
 
 Velocity drives the modulation index as well as the level, so playing harder
 brightens rather than only getting louder, and it sets the outline pulse.
-Polyphonic pad pressure temporarily adds Kiki bite without changing the saved
-Morph value. The outline follows the newest active note, drawing the modulation
-the DSP actually applied.
-
-Each voice's bounded 256-point contour is rebuilt per audio block and
-crossfaded per sample, so geometry changes do not zipper; control targets settle
-in roughly 24 ms. The oversampling above reduces scan aliasing, but this is not
-a strictly bandlimited oscillator. The drawing caches geometry, skips duplicate
-pixels, and reads one compact telemetry value through Schwung's existing
-staggered cache; direct knob turns are applied to that telemetry immediately, so
-a stale poll never delays a gesture. Note events after the first page draw remain
-latched until observed, then animate locally. Opening the page establishes a
-baseline so old notes do not replay. The host's polling cadence still limits the
-initial visual response to pressure and notes.
+Polyphonic pad pressure adds bite and swells the level without changing the
+saved Morph value. The outline follows the newest active note, drawing the
+deformation the DSP actually applied.
 
 ## Build and test
 

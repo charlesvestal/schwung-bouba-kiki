@@ -66,12 +66,12 @@
             // Apply DSP-reported modulation offsets to fresh knob values, so
             // staggered telemetry never holds up a direct knob turn.
             const effective=Object.assign({},values);
-            if(v.length>=19){
+            if(v.length>=18){
                 ['morph','bulge','pinch','spikes','tilt','wobble'].forEach((key,i)=>{
-                    effective[key]=clamp(clamp(values[key])+v[6+i]-v[13+i]);
+                    effective[key]=clamp(clamp(values[key])+v[5+i]-v[12+i]);
                 });
                 effective.pressure=0; // Already included in the reported offsets.
-                if(st.telemetry!==values.visual){st.phase=v[12];st.telemetry=values.visual;}
+                if(st.telemetry!==values.visual){st.phase=v[11];st.telemetry=values.visual;}
             }else effective.pressure=st.pressure;
             const wobble=clamp(effective.wobble);
             st.phase=(st.phase+TAU*(.15+3.85*wobble*wobble)*dt)%TAU;

@@ -68,7 +68,6 @@ void bk_synth_init(bk_synth_t *s, float sample_rate) {
     s->release = 0.25f;
     s->current_attack=s->attack;s->current_release=s->release;
     s->decay=s->current_decay=.25f;s->sustain=s->current_sustain=1;
-    s->mod_adsr=s->mod_current=(bk_adsr_t){0,.3f,0,.2f};
     bk_shape_defaults(&s->shape);
     s->current=s->shape;
     s->slew=1.0f-expf(-1.0f/(0.006f*s->sample_rate));
@@ -84,14 +83,9 @@ void bk_synth_set_attack_release(bk_synth_t *s, float attack, float release) {
     s->release = clamp01(release);
 }
 
-void bk_synth_set_envelopes(bk_synth_t *s,const bk_adsr_t *amp,const bk_adsr_t *mod){
+void bk_synth_set_envelopes(bk_synth_t *s,const bk_adsr_t *amp){
     bk_synth_set_attack_release(s,amp->attack,amp->release);
     s->decay=clamp01(amp->decay);s->sustain=clamp01(amp->sustain);
-    s->mod_adsr=(bk_adsr_t){clamp01(mod->attack),clamp01(mod->decay),clamp01(mod->sustain),clamp01(mod->release)};
-}
-void bk_synth_set_modulation(bk_synth_t *s,float amount,int destination){
-    s->mod_amount=isfinite(amount)?fmaxf(-1,fminf(1,amount)):0;
-    s->mod_destination=destination<0?0:destination>5?5:destination;
 }
 static bk_adsr_t seconds(bk_adsr_t p){
     return (bk_adsr_t){.002f+2*p.attack*p.attack,.005f+4*p.decay*p.decay,p.sustain,.01f+4*p.release*p.release};
@@ -156,13 +150,7 @@ void bk_synth_render(bk_synth_t *s, float *out_lr, int frames) {
     s->current_release+=(s->release-s->current_release)*block_slew;
     s->current_decay+=(s->decay-s->current_decay)*block_slew;
     s->current_sustain+=(s->sustain-s->current_sustain)*block_slew;
-#define ENV_SLEW(key) s->mod_current.key+=(s->mod_adsr.key-s->mod_current.key)*block_slew
-    ENV_SLEW(attack);ENV_SLEW(decay);ENV_SLEW(sustain);ENV_SLEW(release);
-#undef ENV_SLEW
-    float previous_depth[6];memcpy(previous_depth,s->mod_depth,sizeof(previous_depth));
-    for(int i=0;i<6;i++)s->mod_depth[i]+=((i==s->mod_destination?s->mod_amount:0)-s->mod_depth[i])*block_slew;
     const bk_adsr_t amp=seconds((bk_adsr_t){s->current_attack,s->current_decay,s->current_sustain,s->current_release});
-    const bk_adsr_t mod=seconds(s->mod_current);
     const bk_shape_params_t before=s->current;
 #define SLEW(key) s->current.key+=(s->shape.key-s->current.key)*block_slew
         SLEW(morph); SLEW(bulge); SLEW(pinch); SLEW(spikes); SLEW(tilt); SLEW(wobble);
@@ -171,14 +159,12 @@ void bk_synth_render(bk_synth_t *s, float *out_lr, int frames) {
     for(int i=0;i<BK_VOICES;i++){
         bk_voice_t *v=&s->voices[i];if(!v->active)continue;
         v->contour_index=1-v->contour_index;
-        bk_envelope_t predicted=v->mod_env;bk_envelope_gate(&predicted,v->held||v->min_gate>0);
-        for(int f=0;f<frames;f++)bk_envelope_tick(&predicted,&mod,s->sample_rate);
         /* Each voice carries its own ripple phase, so a held chord moves
            internally instead of every note breathing in lockstep. */
         motion_start[i]=sinf(v->wobble_phase)*s->current.wobble;
         v->wobble_phase=fmodf(v->wobble_phase+advance,BK_TAU);
         motion_end[i]=sinf(v->wobble_phase)*s->current.wobble;
-        const bk_shape_params_t shape=bk_shape_modulate(&s->current,s->mod_depth,predicted.level,v->pressure);
+        const bk_shape_params_t shape=bk_shape_modulate(&s->current,v->pressure);
         const float hz=v->increment*s->sample_rate;
         prepare_contour(&shape,hz,v->wobble_phase,v->contour[v->contour_index]);
         /* The modulator scans its own contour, sharpened relative to the
@@ -203,7 +189,6 @@ void bk_synth_render(bk_synth_t *s, float *out_lr, int frames) {
     }
     for(int f=0;f<frames;f++){
         const float blend=(f+1.0f)/frames;
-        float depth[6];for(int i=0;i<6;i++)depth[i]=previous_depth[i]+(s->mod_depth[i]-previous_depth[i])*blend;
         bk_shape_params_t tone;
 #define INTERPOLATE(key) tone.key=before.key+(s->current.key-before.key)*blend
         INTERPOLATE(morph);INTERPOLATE(bulge);INTERPOLATE(pinch);
@@ -213,7 +198,7 @@ void bk_synth_render(bk_synth_t *s, float *out_lr, int frames) {
         for(int v=0;v<BK_VOICES;v++){
             bk_voice_t *voice=&s->voices[v];
             const float motion=motion_start[v]+(motion_end[v]-motion_start[v])*(float)f/(float)frames;
-            float vl,vr; bk_voice_render(voice,&tone,&amp,&mod,motion,depth,
+            float vl,vr; bk_voice_render(voice,&tone,&amp,motion,
                 voice->contour[1-voice->contour_index],voice->contour[voice->contour_index],
                 voice->mod_contour[1-voice->contour_index],voice->mod_contour[voice->contour_index],
                 blend,&vl,&vr);

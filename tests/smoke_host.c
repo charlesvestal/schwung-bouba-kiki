@@ -32,15 +32,15 @@ int main(int argc, char **argv) {
     ok(inst != NULL, "creates instance");
     char value[4096];
     ok(api->get_param(inst, "chain_params", value, sizeof(value)) > 0 && strstr(value, "morph"), "serves chain params");
-    ok(occurrences(value, "\"step\":0.01") == 15, "runtime contract serves continuous-control steps");
-    ok(occurrences(value, "\"default\":") == 17, "runtime contract serves sixteen controls and preset defaults");
+    ok(occurrences(value, "\"step\":0.01") == 10, "runtime contract serves continuous-control steps");
+    ok(occurrences(value, "\"default\":") == 11, "runtime contract serves ten controls and the preset default");
     ok(api->get_param(inst, "ui_hierarchy", value, sizeof(value)) > 0 && strstr(value, "shape"), "serves hierarchy");
-    const char *keys[] = {"morph","bulge","pinch","spikes","tilt","wobble","mod_amount","mod_destination","attack","decay","sustain","release","mod_attack","mod_decay","mod_sustain","mod_release"};
-    const double defaults[] = {0,0,0,0,.5,0,0,0,.05,.25,1,.25,0,.3,0,.2};
+    const char *keys[] = {"morph","bulge","pinch","spikes","tilt","wobble","attack","decay","sustain","release"};
+    const double defaults[] = {0,0,0,0,.5,0,.05,.25,1,.25};
     for (unsigned i = 0; i < sizeof(keys)/sizeof(keys[0]); ++i) {
         ok(api->get_param(inst, keys[i], value, sizeof(value)) > 0 && fabs(atof(value)-defaults[i]) < 0.001, "runtime default matches manifest");
         api->set_param(inst, keys[i], "0.73");
-        ok(api->get_param(inst, keys[i], value, sizeof(value)) > 0 && fabs(atof(value)-(i==7?1:.73)) < 0.001, keys[i]);
+        ok(api->get_param(inst, keys[i], value, sizeof(value)) > 0 && fabs(atof(value)-.73) < 0.001, keys[i]);
     }
     api->set_param(inst, "morph", "garbage");
     api->get_param(inst, "morph", value, sizeof(value));
@@ -55,12 +55,10 @@ int main(int argc, char **argv) {
     ok(api->get_param(inst, "state", state, sizeof(state)) > 0, "serves state");
     void *copy = api->create_instance(".", NULL);
     api->set_param(copy, "state", state);
-    api->get_param(copy,"state",value,sizeof(value));ok(!strcmp(value,state),"all sixteen values round-trip");
+    api->get_param(copy,"state",value,sizeof(value));ok(!strcmp(value,state),"all ten values round-trip");
     api->get_param(copy, "morph", value, sizeof(value));
     ok(fabs(atof(value)-1.0) < 0.001, "restores state");
     api->destroy_instance(copy);
-    api->set_param(inst,"mod_amount","-0.8");api->get_param(inst,"mod_amount",value,sizeof(value));ok(fabs(atof(value)+.8)<.001,"bipolar modulation amount");
-    api->set_param(inst,"mod_destination","Pinch");api->get_param(inst,"mod_destination",value,sizeof(value));ok(atoi(value)==2,"named modulation destination");
     const char *presets[]={"Pure Bouba","Kiki Knock","Slow Prickle","Rubber Mouth","Glass Creature","Held Breath"};
     for(int i=0;i<6;i++){char index[8];snprintf(index,sizeof(index),"%d",i);api->set_param(inst,"preset",index);api->get_param(inst,"preset_name",value,sizeof(value));ok(!strcmp(value,presets[i]),presets[i]);}
     // The host writes preset 0 before restoring state on every chain load, so

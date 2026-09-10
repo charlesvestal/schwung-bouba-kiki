@@ -9,29 +9,8 @@ void bk_shape_defaults(bk_shape_params_t *p) {
     *p=(bk_shape_params_t){0,0,0,0,.5f,0};
 }
 
-/* Modulate toward the limit rather than adding and clamping.
- *
- * Adding threw the envelope away exactly when the amount was turned up: at a
- * base of 0.5 with amount +1 the target reached its ceiling halfway up the
- * attack and sat flat for the rest, so the ADSR's shape stopped reaching the
- * sound. Scaling by the room that is left keeps the whole contour of the
- * envelope audible at every base position and every amount.
- *
- * A negative amount still cannot pull a control below zero -- nothing can --
- * but it now moves proportionally to how far up the control already is,
- * instead of clamping flat the moment it reaches the floor. */
-static float toward(float base,float amount){
-    if(amount>=0)return base+amount*(1-base);
-    return base+amount*base;
-}
-bk_shape_params_t bk_shape_modulate(const bk_shape_params_t *base,const float depth[6],float envelope,float pressure){
+bk_shape_params_t bk_shape_modulate(const bk_shape_params_t *base,float pressure){
     bk_shape_params_t p=*base;
-    p.morph=toward(p.morph,depth[0]*envelope);
-    p.bulge=toward(p.bulge,depth[1]*envelope);
-    p.pinch=toward(p.pinch,depth[2]*envelope);
-    p.spikes=toward(p.spikes,depth[3]*envelope);
-    p.tilt=toward(p.tilt,depth[4]*envelope);
-    p.wobble=toward(p.wobble,depth[5]*envelope);
     p.morph+=.3f*pressure;
     bk_shape_clamp(&p);return p;
 }

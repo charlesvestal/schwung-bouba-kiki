@@ -78,37 +78,9 @@
         "default": 0
       },
       {
-        "key": "mod_amount",
-        "name": "Mod Amount",
-        "short_name": "M Amt",
-        "type": "float",
-        "min": -1,
-        "max": 1,
-        "step": 0.01,
-        "default": 0
-      },
-      {
-        "key": "mod_destination",
-        "name": "Mod Destination",
-        "short_name": "M Dst",
-        "type": "enum",
-        "min": 0,
-        "max": 5,
-        "step": 1,
-        "default": 0,
-        "options": [
-          "Morph",
-          "Bulge",
-          "Pinch",
-          "Spikes",
-          "Tilt",
-          "Wobble"
-        ]
-      },
-      {
         "key": "attack",
-        "name": "Amp Attack",
-        "short_name": "A Atk",
+        "name": "Attack",
+        "short_name": "Atk",
         "type": "float",
         "min": 0,
         "max": 1,
@@ -121,8 +93,8 @@
       },
       {
         "key": "decay",
-        "name": "Amp Decay",
-        "short_name": "A Dec",
+        "name": "Decay",
+        "short_name": "Dec",
         "type": "float",
         "min": 0,
         "max": 1,
@@ -135,8 +107,8 @@
       },
       {
         "key": "sustain",
-        "name": "Amp Sustain",
-        "short_name": "A Sus",
+        "name": "Sustain",
+        "short_name": "Sus",
         "type": "float",
         "min": 0,
         "max": 1,
@@ -149,8 +121,8 @@
       },
       {
         "key": "release",
-        "name": "Amp Release",
-        "short_name": "A Rel",
+        "name": "Release",
+        "short_name": "Rel",
         "type": "float",
         "min": 0,
         "max": 1,
@@ -158,62 +130,6 @@
         "default": 0.25,
         "viz": {
           "group": "amp",
-          "role": "release"
-        }
-      },
-      {
-        "key": "mod_attack",
-        "name": "Mod Attack",
-        "short_name": "M Atk",
-        "type": "float",
-        "min": 0,
-        "max": 1,
-        "step": 0.01,
-        "default": 0,
-        "viz": {
-          "group": "mod",
-          "role": "attack"
-        }
-      },
-      {
-        "key": "mod_decay",
-        "name": "Mod Decay",
-        "short_name": "M Dec",
-        "type": "float",
-        "min": 0,
-        "max": 1,
-        "step": 0.01,
-        "default": 0.3,
-        "viz": {
-          "group": "mod",
-          "role": "decay"
-        }
-      },
-      {
-        "key": "mod_sustain",
-        "name": "Mod Sustain",
-        "short_name": "M Sus",
-        "type": "float",
-        "min": 0,
-        "max": 1,
-        "step": 0.01,
-        "default": 0,
-        "viz": {
-          "group": "mod",
-          "role": "sustain"
-        }
-      },
-      {
-        "key": "mod_release",
-        "name": "Mod Release",
-        "short_name": "M Rel",
-        "type": "float",
-        "min": 0,
-        "max": 1,
-        "step": 0.01,
-        "default": 0.2,
-        "viz": {
-          "group": "mod",
           "role": "release"
         }
       },
@@ -258,8 +174,8 @@
           "spikes",
           "tilt",
           "wobble",
-          "mod_amount",
-          "mod_destination"
+          "attack",
+          "release"
         ],
         "params": [
           {
@@ -284,14 +200,14 @@
             "key": "wobble"
           },
           {
-            "key": "mod_amount"
+            "key": "attack"
           },
           {
-            "key": "mod_destination"
+            "key": "release"
           },
           {
-            "level": "envelopes",
-            "label": "Envelopes"
+            "level": "envelope",
+            "label": "Envelope"
           },
           {
             "level": "presets",
@@ -299,17 +215,13 @@
           }
         ]
       },
-      "envelopes": {
-        "label": "Envelopes",
+      "envelope": {
+        "label": "Envelope",
         "knobs": [
           "attack",
           "decay",
           "sustain",
-          "release",
-          "mod_attack",
-          "mod_decay",
-          "mod_sustain",
-          "mod_release"
+          "release"
         ],
         "params": [
           {
@@ -323,18 +235,6 @@
           },
           {
             "key": "release"
-          },
-          {
-            "key": "mod_attack"
-          },
-          {
-            "key": "mod_decay"
-          },
-          {
-            "key": "mod_sustain"
-          },
-          {
-            "key": "mod_release"
           }
         ]
       },

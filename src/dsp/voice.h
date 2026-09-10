@@ -7,7 +7,7 @@
 typedef struct bk_voice {
     int active, held, note;
     float velocity, pressure, target_pressure, envelope;
-    bk_envelope_t amp_env,mod_env;
+    bk_envelope_t amp_env;
     float phase_a, phase_b, increment;
     float sample_rate, slew, steal_slew;
     float filter_b[3][3],filter_a[3][2],filter_z[2][3][2];
@@ -23,8 +23,7 @@ typedef struct bk_voice {
 void bk_voice_start(bk_voice_t *v, int note, int velocity, uint64_t age,
                     float sample_rate);
 void bk_voice_render(bk_voice_t *v, const bk_shape_params_t *shape,
-                     const bk_adsr_t *amp,const bk_adsr_t *mod,float motion,
-                     const float mod_depth[6],
+                     const bk_adsr_t *amp,float motion,
                      const float previous[BK_CONTOUR_SIZE][2],
                      const float next[BK_CONTOUR_SIZE][2],
                      const float mod_previous[BK_CONTOUR_SIZE][2],
