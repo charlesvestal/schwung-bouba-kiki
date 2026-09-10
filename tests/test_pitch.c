@@ -33,15 +33,22 @@ static float run(bk_shape_params_t p,int pressure){
     return periodicity(&s,440.0f*powf(2,(48-69)/12.0f));
 }
 int main(void){
-    const char *names[]={"neutral","morph","pinch","spikes","bulge","tilt","wobble"};
+    const char *names[]={"neutral","morph","bulge","tilt","wobble"};
     bk_shape_params_t cases[]={
-        {0,0,0,0,.5f,0},{1,0,0,0,.5f,0},{0,0,1,0,.5f,0},{0,0,0,1,.5f,0},
-        {0,1,0,0,.5f,0},{0,0,0,0,1,0},{0,0,0,0,.5f,1}};
+        {0,0,0,0,.5f,0},{1,0,0,0,.5f,0},{0,1,0,0,.5f,0},{0,0,0,0,1,0},{0,0,0,0,.5f,1}};
     for(unsigned i=0;i<sizeof(cases)/sizeof(cases[0]);++i){
         const float ac=run(cases[i],0);
         printf("  %-8s periodicity at the fundamental %.3f\n",names[i],ac);
-        assert(ac>.3f); /* true irrational ratios scored 0.06 and below */
+        assert(ac>.9f);
     }
+    /* The other two are expected to go inharmonic, and are checked for it: if
+       Pinch ever starts holding the pitch, the ratio has been flattened and
+       the character has quietly gone with it. */
+    {   const bk_shape_params_t pinch={0,0,1,0,.5f,0},spikes={0,0,0,1,.5f,0};
+        const float pa=run(pinch,0),sa=run(spikes,0);
+        printf("  pinch    periodicity %.3f (inharmonic by design)\n",pa);
+        printf("  spikes   periodicity %.3f (inharmonic by design)\n",sa);
+        assert(pa<.5f); assert(sa<.7f); }
     /* Pressure is the strictest case: it is a continuous gesture, so any ratio
        movement under it is heard as the note sliding out of tune. */
     for(int p=32;p<=127;p+=31){
@@ -49,5 +56,5 @@ int main(void){
         printf("  pressure %3d periodicity %.3f\n",p,ac);
         assert(ac>.9f);
     }
-    puts("PASS: timbre controls and pressure hold the fundamental");
+    puts("PASS: Morph and pressure hold the fundamental; Pinch and Spikes stay inharmonic");
 }

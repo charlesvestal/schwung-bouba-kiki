@@ -25,30 +25,31 @@ together, so sharpening the shape changes what the operators play, moves them
 apart in frequency and drives them harder in a single gesture:
 
 ```
-index = (.025 + .28*spikes + .22*pinch + .1*morph
+index = (.025 + .3*morph + .28*spikes + .22*pinch
          + .2*bulge + .2*pressure) * keytrack
-ratio = a whole number, crossfaded with its neighbour,
-         + .05*(morph + pinch + spikes)
+ratio = 1 + 0.414*spikes + 1.732*pinch
 ```
 
-The ratio is deliberately not free-running. An unconstrained ratio leaves the
-two operators sharing no period at all, and the ear hears that as a lost
-fundamental rather than as colour: sweeping Pinch used to drop the pitch a full
-octave. Holding the ratio near a whole number keeps the note, and the 5% offset
-keeps the clang — measured off-harmonic energy at full Pinch is 0.51 against
-0.75 for a free ratio, with periodicity at the fundamental going from 0.06 to
-0.87. The two neighbouring whole numbers are crossfaded rather than switched, so
-no control steps as it sweeps. Pressure is excluded from the ratio entirely and
-brightens through the index alone, because a ratio sliding under a held note is
-heard as the note drifting out of tune.
+The ratio is free-running and irrational, and only Spikes and Pinch reach it.
+Two operators at an irrational ratio share no period, so the composite is
+aperiodic and the ear stops hearing a definite pitch — that clangorous quality
+is what the instrument is for, and at full Pinch the off-harmonic energy is
+0.75 with periodicity at the fundamental down at 0.06.
 
-Two pitch-dependent guards keep the top of the keyboard clean. The contour is a
-wavetable, so its narrow teeth are high harmonics of it and fold back down as
-grit above about C6: the contour is smoothed by a width that follows the note,
-and the index is key-tracked. Both are inert below 420 Hz, and together they
-take C6 from 5.3% to 1.2% of energy below the fundamental, and C7 from 6.0% to
-0.3%. `tests/test_pitch.sh` guards the tuning and `tools/render_sound.py
---check` the folding.
+What matters is which controls are allowed to do that. Morph is the primary
+axis and pressure is a continuous gesture under a held note, so either one
+moving the tuning is heard as the note drifting rather than as timbre. Both are
+kept out of the ratio and drive brightness through the index instead: Morph
+sweeps the centroid 171 → 562 Hz with periodicity still at 0.990. Constraining
+the ratio was tried instead — snapping it to whole numbers, to halves, and
+crossfading neighbours — and every variant cost the character across all four
+controls to fix a problem that only ever affected two. `tests/test_pitch.sh`
+holds both halves of this: Morph, Bulge, Tilt, Wobble and pressure must stay
+periodic, and Pinch and Spikes must not.
+
+The contour is a wavetable, so its narrow teeth are high harmonics of it and
+fold down at the top of the keyboard. It is smoothed by a width that follows
+the note and the index is key-tracked, both inert below 420 Hz.
 
 Each voice also carries its own ripple phase, so a held chord moves internally
 rather than breathing in lockstep.

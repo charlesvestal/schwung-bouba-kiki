@@ -19,7 +19,6 @@ void bk_voice_start(bk_voice_t *v,int note,int velocity,uint64_t age,float sampl
     v->velocity=velocity/127.0f;v->increment=440*powf(2,(note-69)/12.0f)/sample_rate;
     // Hold the gate open briefly so a note released inside the same block still sounds.
     v->min_gate=(int)(.004f*sample_rate);
-    v->ratio_step=-1;
     // Stagger each voice's ripple so a chord breathes instead of pulsing as one.
     // Golden-ratio spacing, because consecutive notes take consecutive ages and
     // any small integer step would leave them bunched within a few degrees.
@@ -68,36 +67,20 @@ void bk_voice_render(bk_voice_t *v,const bk_shape_params_t *p,
     // fold that spread back down as grit. Real FM instruments dull with pitch
     // for the same reason.
     const float keytrack=fminf(1,420.0f/fmaxf(20.0f,v->increment*v->sample_rate));
-    const float index=(.025f+.28f*p->spikes+.22f*p->pinch+.1f*p->morph+.2f*p->bulge+.2f*v->pressure)*keytrack;
-    // Snap the operator ratio to a whole number, then push it slightly off.
-    // An unconstrained irrational ratio leaves the two operators sharing no
-    // period at all, so the composite is aperiodic and the ear loses the
-    // fundamental. Snapping alone would hold pitch but strip the metallic
-    // character, since that character is the inharmonicity. A small offset
-    // keeps the fundamental anchored while the upper partials stay clangorous.
-    const float raw_ratio=1+.41421356f*(tonal.morph+tonal.spikes)+1.7320508f*tonal.pinch;
-    // Rather than snap the ratio to a whole number and step audibly across the
-    // boundary, run a modulator at each neighbouring whole number and crossfade
-    // between them. Both are near-periodic with the carrier, so the fundamental
-    // survives, and the blend is continuous with no glide and no lag.
-    const float detune=.05f*(tonal.morph+tonal.pinch+tonal.spikes);
-    const int step=(int)raw_ratio;               /* raw_ratio >= 1 always */
-    const float frac=raw_ratio-(float)step;
-    if(step!=v->ratio_step){
-        // Carry the shared accumulator across so the crossfade stays continuous.
-        if(v->ratio_step>=0){
-            if(step==v->ratio_step+1)v->phase_b=v->phase_c;
-            else if(step==v->ratio_step-1)v->phase_c=v->phase_b;
-        }
-        v->ratio_step=step;
-    }
-    const float ratio=(float)step+detune,ratio_high=(float)(step+1)+detune;
+    const float index=(.025f+.28f*p->spikes+.22f*p->pinch+.3f*p->morph+.2f*p->bulge+.2f*v->pressure)*keytrack;
+    // Free-running, and driven by Spikes and Pinch alone. Two operators at an
+    // irrational ratio share no period, so the composite is aperiodic and the
+    // ear stops hearing a definite pitch -- which IS the clangorous character
+    // this instrument is for. Keeping Morph out of it (and therefore pressure,
+    // which reaches the shape through Morph) confines that to two controls, so
+    // the morph axis and the pad gesture stay in tune. Quantising the ratio was
+    // tried instead and cost the character everywhere without being needed on
+    // the two controls that stay clean anyway.
+    const float ratio=1+.41421356f*tonal.spikes+1.7320508f*tonal.pinch;
     for(int os=0;os<4;os++){
         v->phase_a=wrap(v->phase_a+v->increment*.25f);
         v->phase_b=wrap(v->phase_b+v->increment*.25f*ratio);
-        v->phase_c=wrap(v->phase_c+v->increment*.25f*ratio_high);
-        const float mod=scan(previous,next,v->phase_b,1,blend)*(1-frac)
-                       +scan(previous,next,v->phase_c,1,blend)*frac;
+        const float mod=scan(previous,next,v->phase_b,1,blend);
         const float phase=v->phase_a+index*mod+.06f*p->wobble*v->feedback;
         const float x=scan(previous,next,phase,0,blend);
         const float y=scan(previous,next,phase+.035f*motion,1,blend);

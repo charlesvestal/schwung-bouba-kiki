@@ -14,8 +14,7 @@ typedef struct bk_voice {
     float dc_in[2],dc_out[2],feedback;
     float contour[2][BK_CONTOUR_SIZE][2];
     int contour_index,contour_ready,min_gate;
-    float phase_c,wobble_phase;
-    int ratio_step;
+    float wobble_phase;
     float steal_tail, last_output;
     uint64_t age;
 } bk_voice_t;
