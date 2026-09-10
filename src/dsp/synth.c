@@ -9,9 +9,38 @@ static float clamp01(float v) {
     return v > 1.0f ? 1.0f : v;
 }
 
-static void prepare_contour(bk_synth_t *s,float pressure,float mod_level,float out[BK_CONTOUR_SIZE][2]) {
+/* Band-limit the contour for the pitch that will scan it. The contour is a
+ * wavetable, and narrow teeth are high harmonics of it: at 2 kHz the 100th
+ * harmonic of a 256-point table lands at 200 kHz and folds back as grit. A
+ * circular box smoother, applied twice, is the cheap mip-map -- it rounds the
+ * teeth off as the note rises, which is also what the eye expects of a small
+ * shape. Below roughly C4 the width is 1 and this is a no-op. */
+static void band_limit(float c[BK_CONTOUR_SIZE][2],float hz) {
+    /* Only above the pitch where folding actually starts. Below this the teeth
+       are worth more than the handful of stray partials they produce, and the
+       index key-track is likewise inactive. */
+    if(!(hz>420.0f))return;
+    const int keep=(int)(15000.0f/hz);              /* harmonics under ~15 kHz */
+    if(keep>=BK_CONTOUR_SIZE/2)return;
+    int width=BK_CONTOUR_SIZE/(keep>0?keep:1);
+    if(width<2)return;
+    if(width>BK_CONTOUR_SIZE/4)width=BK_CONTOUR_SIZE/4;
+    float tmp[BK_CONTOUR_SIZE][2];
+    for(int pass=0;pass<2;pass++){
+        for(int i=0;i<BK_CONTOUR_SIZE;i++){
+            float sx=0,sy=0;
+            for(int k=0;k<width;k++){
+                const int j=(i+k-width/2)&(BK_CONTOUR_SIZE-1);
+                sx+=c[j][0];sy+=c[j][1];
+            }
+            tmp[i][0]=sx/width;tmp[i][1]=sy/width;
+        }
+        memcpy(c,tmp,sizeof(tmp));
+    }
+}
+static void prepare_contour(bk_synth_t *s,float pressure,float mod_level,float hz,float phase,float out[BK_CONTOUR_SIZE][2]) {
     bk_shape_params_t shape=bk_shape_modulate(&s->current,s->mod_depth,mod_level,pressure);
-    bk_contour_build(&shape,s->wobble_phase,out);
+    bk_contour_build(&shape,phase,out);
     float mean[2]={0,0},peak=.1f,energy=0;
     for(int i=0;i<BK_CONTOUR_SIZE;i++)for(int c=0;c<2;c++)mean[c]+=out[i][c]/BK_CONTOUR_SIZE;
     for(int i=0;i<BK_CONTOUR_SIZE;i++)for(int c=0;c<2;c++){
@@ -20,6 +49,9 @@ static void prepare_contour(bk_synth_t *s,float pressure,float mod_level,float o
     // Preserve body as narrow teeth raise the crest factor; bound extreme peaks.
     const float gain=.55f/fmaxf(sqrtf(energy/(BK_CONTOUR_SIZE*2)),peak/4);
     for(int i=0;i<BK_CONTOUR_SIZE;i++)for(int c=0;c<2;c++)out[i][c]*=gain;
+    /* After normalising, so smoothing genuinely removes energy instead of
+       being handed back by the gain. */
+    band_limit(out,hz);
 }
 
 void bk_synth_init(bk_synth_t *s, float sample_rate) {
@@ -109,9 +141,9 @@ void bk_synth_kill_all(bk_synth_t *s) {
 void bk_synth_render(bk_synth_t *s, float *out_lr, int frames) {
     if(frames<=0)return;
     const float rate=0.15f+3.85f*s->current.wobble*s->current.wobble;
-    const float start=sinf(s->wobble_phase);
-    s->wobble_phase=fmodf(s->wobble_phase+BK_TAU*rate*(float)frames/s->sample_rate,BK_TAU);
-    const float end=sinf(s->wobble_phase);
+    const float advance=BK_TAU*rate*(float)frames/s->sample_rate;
+    /* Kept for the display, which draws one shape for the newest note. */
+    s->wobble_phase=fmodf(s->wobble_phase+advance,BK_TAU);
     const float block_slew=1-expf(-(float)frames/(.006f*s->sample_rate));
     s->current_attack+=(s->attack-s->current_attack)*block_slew;
     s->current_release+=(s->release-s->current_release)*block_slew;
@@ -128,12 +160,19 @@ void bk_synth_render(bk_synth_t *s, float *out_lr, int frames) {
 #define SLEW(key) s->current.key+=(s->shape.key-s->current.key)*block_slew
         SLEW(morph); SLEW(bulge); SLEW(pinch); SLEW(spikes); SLEW(tilt); SLEW(wobble);
 #undef SLEW
+    float motion_start[BK_VOICES]={0},motion_end[BK_VOICES]={0};
     for(int i=0;i<BK_VOICES;i++){
         bk_voice_t *v=&s->voices[i];if(!v->active)continue;
         v->contour_index=1-v->contour_index;
         bk_envelope_t predicted=v->mod_env;bk_envelope_gate(&predicted,v->held||v->min_gate>0);
         for(int f=0;f<frames;f++)bk_envelope_tick(&predicted,&mod,s->sample_rate);
-        prepare_contour(s,v->pressure,predicted.level,v->contour[v->contour_index]);
+        /* Each voice carries its own ripple phase, so a held chord moves
+           internally instead of every note breathing in lockstep. */
+        motion_start[i]=sinf(v->wobble_phase)*s->current.wobble;
+        v->wobble_phase=fmodf(v->wobble_phase+advance,BK_TAU);
+        motion_end[i]=sinf(v->wobble_phase)*s->current.wobble;
+        prepare_contour(s,v->pressure,predicted.level,v->increment*s->sample_rate,
+                        v->wobble_phase,v->contour[v->contour_index]);
         if(!v->contour_ready){
             memcpy(v->contour[1-v->contour_index],v->contour[v->contour_index],sizeof(v->contour[0]));
             v->contour_ready=1;
@@ -147,10 +186,10 @@ void bk_synth_render(bk_synth_t *s, float *out_lr, int frames) {
         INTERPOLATE(morph);INTERPOLATE(bulge);INTERPOLATE(pinch);
         INTERPOLATE(spikes);INTERPOLATE(tilt);INTERPOLATE(wobble);
 #undef INTERPOLATE
-        const float motion=(start+(end-start)*(float)f/(float)frames)*s->current.wobble;
         float l=0,r=0;
         for(int v=0;v<BK_VOICES;v++){
             bk_voice_t *voice=&s->voices[v];
+            const float motion=motion_start[v]+(motion_end[v]-motion_start[v])*(float)f/(float)frames;
             float vl,vr; bk_voice_render(voice,&tone,&amp,&mod,motion,depth,
                 voice->contour[1-voice->contour_index],voice->contour[voice->contour_index],blend,&vl,&vr);
             l+=vl;r+=vr;

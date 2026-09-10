@@ -90,6 +90,17 @@ for destination,name in enumerate(GEOMETRY):
     save('mod_'+name,a)
     early=a[int(.05*RATE):int(.35*RATE)];late=a[int(1.4*RATE):int(1.9*RATE)]
     report['mod_'+name]=dict(early=metrics(early),late=metrics(late))
+# Aliasing: a clean oscillator has nothing below its own fundamental. The
+# contour is a wavetable, so its narrow teeth fold down without the index
+# key-track and the pitch-dependent contour smoothing.
+for note in (60,72,84,96):
+    f0=440*2**((note-69)/12)
+    a,_=render(dict(base,spikes=1),seconds=1.2,notes=(note,))
+    save('alias_note_%d'%note,a)
+    m=a[len(a)//2:].mean(axis=1)
+    sp=np.abs(np.fft.rfft(m*np.hanning(len(m))))**2;f=np.fft.rfftfreq(len(m),1/RATE)
+    below=float(sp[(f>40)&(f<f0*.94)].sum());total=float(sp[f>40].sum())
+    report['alias_note_%d'%note]=round(100*below/max(1e-12,total),3)
 chord,cost=render(dict(base,morph=1,spikes=1,bulge=1),seconds=3,notes=(48,55,60,64))
 save('kiki_chord',chord);report['chord']=dict(metrics(chord),us_per_block=round(cost,1))
 for index in range(6):
@@ -119,4 +130,6 @@ if '--check' in sys.argv:
     for name in GEOMETRY:
         r=report['mod_'+name]
         assert moved(r['early'],r['late']), 'modulating '+name+' must change the tone during a held note'
-    print('PASS: six geometric ranges, both envelopes, every modulation destination and six presets')
+    for note in (60,72,84,96):
+        assert report['alias_note_%d'%note]<2.5, 'note %d folds partials below its fundamental'%note
+    print('PASS: six geometric ranges, both envelopes, every modulation destination, six presets and no folded partials')

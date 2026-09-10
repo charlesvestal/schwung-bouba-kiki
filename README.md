@@ -19,26 +19,39 @@ over the same curve. The second one's Y channel phase-modulates the first one's
 read position, with a one-sample feedback term — two-operator feedback phase
 modulation whose operators are arbitrary geometry instead of sines.
 
-**One shape drives three FM parameters at once.** The geometric controls set the
-operator waveforms, the operator frequency ratio
-(`1 + 0.414*(morph+spikes) + 1.732*pinch`, deliberately irrational) and the
-modulation index (`.025 + .28*spikes + .22*pinch + .1*morph + .2*pressure`)
-together. Sharpening the shape simultaneously changes what the operators play,
-detunes them further from a harmonic ratio, and drives them harder. Ablation
-confirms both halves carry weight — freezing the FM parameters and sweeping only
-the geometry, versus the reverse, measured as spectral-centroid movement:
+**One shape drives three FM parameters at once.** The geometric controls set
+the operator waveforms, the operator frequency ratio and the modulation index
+together, so sharpening the shape changes what the operators play, moves them
+apart in frequency and drives them harder in a single gesture:
 
-| control | full engine | geometry only | FM parameters only |
-|---------|------------|---------------|--------------------|
-| Morph   | 1.24x      | 1.13x         | 1.15x              |
-| Pinch   | 3.64x      | 1.25x         | 2.80x              |
-| Spikes  | 10.23x     | 4.90x         | 2.05x              |
-| Bulge   | 1.23x      | 1.44x         | none               |
-| Wobble  | 1.81x      | 2.25x         | none               |
+```
+index = (.025 + .28*spikes + .22*pinch + .1*morph
+         + .2*bulge + .2*pressure) * keytrack
+ratio = a whole number, crossfaded with its neighbour,
+         + .05*(morph + pinch + spikes)
+```
 
-Bulge and Wobble appear in neither formula, so they act purely as waveform
-changes. Morph and Pinch get most of their inharmonic bite from the ratio.
-Spikes is multiplicative in both.
+The ratio is deliberately not free-running. An unconstrained ratio leaves the
+two operators sharing no period at all, and the ear hears that as a lost
+fundamental rather than as colour: sweeping Pinch used to drop the pitch a full
+octave. Holding the ratio near a whole number keeps the note, and the 5% offset
+keeps the clang — measured off-harmonic energy at full Pinch is 0.51 against
+0.75 for a free ratio, with periodicity at the fundamental going from 0.06 to
+0.87. The two neighbouring whole numbers are crossfaded rather than switched, so
+no control steps as it sweeps. Pressure is excluded from the ratio entirely and
+brightens through the index alone, because a ratio sliding under a held note is
+heard as the note drifting out of tune.
+
+Two pitch-dependent guards keep the top of the keyboard clean. The contour is a
+wavetable, so its narrow teeth are high harmonics of it and fold back down as
+grit above about C6: the contour is smoothed by a width that follows the note,
+and the index is key-tracked. Both are inert below 420 Hz, and together they
+take C6 from 5.3% to 1.2% of energy below the fundamental, and C7 from 6.0% to
+0.3%. `tests/test_pitch.sh` guards the tuning and `tools/render_sound.py
+--check` the folding.
+
+Each voice also carries its own ripple phase, so a held chord moves internally
+rather than breathing in lockstep.
 
 **X and Y are the stereo pair.** The two channels are matrixed to left and right
 (`.85x + .35y` / `.35x + .85y`), so the outline is traced across the stereo field

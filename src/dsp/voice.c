@@ -19,6 +19,12 @@ void bk_voice_start(bk_voice_t *v,int note,int velocity,uint64_t age,float sampl
     v->velocity=velocity/127.0f;v->increment=440*powf(2,(note-69)/12.0f)/sample_rate;
     // Hold the gate open briefly so a note released inside the same block still sounds.
     v->min_gate=(int)(.004f*sample_rate);
+    v->ratio_step=-1;
+    // Stagger each voice's ripple so a chord breathes instead of pulsing as one.
+    // Golden-ratio spacing, because consecutive notes take consecutive ages and
+    // any small integer step would leave them bunched within a few degrees.
+    {   const float turns=(float)age*0.61803399f;
+        v->wobble_phase=(turns-floorf(turns))*6.28318530718f; }
     v->steal_tail=tail;
     // Six-pole lowpass before 4x decimation. No detuned VA oscillators.
     const float q[3]={.51763809f,.70710678f,1.93185165f};
@@ -52,14 +58,46 @@ void bk_voice_render(bk_voice_t *v,const bk_shape_params_t *p,
     bk_envelope_tick(&v->mod_env,mod,v->sample_rate);
     if(!gate&&v->amp_env.stage==BK_ENV_IDLE){v->active=0;v->last_output=0;return;}
     const bk_shape_params_t effective=bk_shape_modulate(p,mod_depth,v->mod_env.level,v->pressure);
+    // Pressure brightens through the index below, but is deliberately excluded
+    // from the ratio: sliding the ratio under a held note is heard as detuning.
+    const bk_shape_params_t tonal=bk_shape_modulate(p,mod_depth,v->mod_env.level,0);
     p=&effective;
     float l=0,r=0;
-    const float index=.025f+.28f*p->spikes+.22f*p->pinch+.1f*p->morph+.2f*v->pressure;
-    const float ratio=1+.41421356f*(p->morph+p->spikes)+1.7320508f*p->pinch;
+    // Key-track the index. The modulator is a whole contour, not a sine, so its
+    // own harmonics multiply out into sidebands; without this the top octaves
+    // fold that spread back down as grit. Real FM instruments dull with pitch
+    // for the same reason.
+    const float keytrack=fminf(1,420.0f/fmaxf(20.0f,v->increment*v->sample_rate));
+    const float index=(.025f+.28f*p->spikes+.22f*p->pinch+.1f*p->morph+.2f*p->bulge+.2f*v->pressure)*keytrack;
+    // Snap the operator ratio to a whole number, then push it slightly off.
+    // An unconstrained irrational ratio leaves the two operators sharing no
+    // period at all, so the composite is aperiodic and the ear loses the
+    // fundamental. Snapping alone would hold pitch but strip the metallic
+    // character, since that character is the inharmonicity. A small offset
+    // keeps the fundamental anchored while the upper partials stay clangorous.
+    const float raw_ratio=1+.41421356f*(tonal.morph+tonal.spikes)+1.7320508f*tonal.pinch;
+    // Rather than snap the ratio to a whole number and step audibly across the
+    // boundary, run a modulator at each neighbouring whole number and crossfade
+    // between them. Both are near-periodic with the carrier, so the fundamental
+    // survives, and the blend is continuous with no glide and no lag.
+    const float detune=.05f*(tonal.morph+tonal.pinch+tonal.spikes);
+    const int step=(int)raw_ratio;               /* raw_ratio >= 1 always */
+    const float frac=raw_ratio-(float)step;
+    if(step!=v->ratio_step){
+        // Carry the shared accumulator across so the crossfade stays continuous.
+        if(v->ratio_step>=0){
+            if(step==v->ratio_step+1)v->phase_b=v->phase_c;
+            else if(step==v->ratio_step-1)v->phase_c=v->phase_b;
+        }
+        v->ratio_step=step;
+    }
+    const float ratio=(float)step+detune,ratio_high=(float)(step+1)+detune;
     for(int os=0;os<4;os++){
         v->phase_a=wrap(v->phase_a+v->increment*.25f);
         v->phase_b=wrap(v->phase_b+v->increment*.25f*ratio);
-        const float mod=scan(previous,next,v->phase_b,1,blend);
+        v->phase_c=wrap(v->phase_c+v->increment*.25f*ratio_high);
+        const float mod=scan(previous,next,v->phase_b,1,blend)*(1-frac)
+                       +scan(previous,next,v->phase_c,1,blend)*frac;
         const float phase=v->phase_a+index*mod+.06f*p->wobble*v->feedback;
         const float x=scan(previous,next,phase,0,blend);
         const float y=scan(previous,next,phase+.035f*motion,1,blend);
