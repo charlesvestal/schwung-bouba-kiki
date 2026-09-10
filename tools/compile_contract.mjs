@@ -6,7 +6,12 @@ const short=['Mrph','Blge','Pnch','Spke','Tilt','Wobl','M Amt','M Dst','A Atk','
 const defaults=[0,0,0,0,.5,0,0,0,.05,.25,1,.25,0,.3,0,.2];
 const min=keys.map(k=>k==='mod_amount'?-1:0),max=keys.map(k=>k==='mod_destination'?5:1);
 const destinations=['Morph','Bulge','Pinch','Spikes','Tilt','Wobble'];
-const params=keys.map((key,i)=>({key,name:names[i],short_name:short[i],type:i===7?'enum':'float',min:min[i],max:max[i],step:i===7?1:.01,default:defaults[i],...(i===7?{options:destinations}: {})}));
+// Declare both envelopes explicitly. The detector finds the amp ADSR by its
+// role words but deliberately will not merge a second envelope whose keys
+// share nothing beyond those words, so the mod row drew as four plain knobs.
+const envelopeViz={attack:['amp','attack'],decay:['amp','decay'],sustain:['amp','sustain'],release:['amp','release'],
+ mod_attack:['mod','attack'],mod_decay:['mod','decay'],mod_sustain:['mod','sustain'],mod_release:['mod','release']};
+const params=keys.map((key,i)=>({key,name:names[i],short_name:short[i],type:i===7?'enum':'float',min:min[i],max:max[i],step:i===7?1:.01,default:defaults[i],...(i===7?{options:destinations}: {}),...(envelopeViz[key]?{viz:{group:envelopeViz[key][0],role:envelopeViz[key][1]}}:{})}));
 params.push({key:'preset',name:'Preset',type:'int',min:0,max:5,step:1,default:0},
  {key:'visual',name:'Activity',type:'string',access:'read'},
  {key:'shape',name:'Shape',short_name:'Shpe',type:'canvas',canvas_script:'canvas.js',as_page:true,extra_keys:['visual'],show_value:false});

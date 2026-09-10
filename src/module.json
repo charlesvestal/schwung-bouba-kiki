@@ -113,7 +113,11 @@
         "min": 0,
         "max": 1,
         "step": 0.01,
-        "default": 0.05
+        "default": 0.05,
+        "viz": {
+          "group": "amp",
+          "role": "attack"
+        }
       },
       {
         "key": "decay",
@@ -123,7 +127,11 @@
         "min": 0,
         "max": 1,
         "step": 0.01,
-        "default": 0.25
+        "default": 0.25,
+        "viz": {
+          "group": "amp",
+          "role": "decay"
+        }
       },
       {
         "key": "sustain",
@@ -133,7 +141,11 @@
         "min": 0,
         "max": 1,
         "step": 0.01,
-        "default": 1
+        "default": 1,
+        "viz": {
+          "group": "amp",
+          "role": "sustain"
+        }
       },
       {
         "key": "release",
@@ -143,7 +155,11 @@
         "min": 0,
         "max": 1,
         "step": 0.01,
-        "default": 0.25
+        "default": 0.25,
+        "viz": {
+          "group": "amp",
+          "role": "release"
+        }
       },
       {
         "key": "mod_attack",
@@ -153,7 +169,11 @@
         "min": 0,
         "max": 1,
         "step": 0.01,
-        "default": 0
+        "default": 0,
+        "viz": {
+          "group": "mod",
+          "role": "attack"
+        }
       },
       {
         "key": "mod_decay",
@@ -163,7 +183,11 @@
         "min": 0,
         "max": 1,
         "step": 0.01,
-        "default": 0.3
+        "default": 0.3,
+        "viz": {
+          "group": "mod",
+          "role": "decay"
+        }
       },
       {
         "key": "mod_sustain",
@@ -173,7 +197,11 @@
         "min": 0,
         "max": 1,
         "step": 0.01,
-        "default": 0
+        "default": 0,
+        "viz": {
+          "group": "mod",
+          "role": "sustain"
+        }
       },
       {
         "key": "mod_release",
@@ -183,7 +211,11 @@
         "min": 0,
         "max": 1,
         "step": 0.01,
-        "default": 0.2
+        "default": 0.2,
+        "viz": {
+          "group": "mod",
+          "role": "release"
+        }
       },
       {
         "key": "preset",

@@ -34,6 +34,13 @@ assert module["ui_hierarchy"]["pad_layout"] == "chromatic"
 assert root["knobs"] == expected
 assert root["params"][0] == {"key": "shape"}
 assert [p["key"] for p in root["params"][1:9]] == expected
+# Both envelopes must declare their viz group. The detector finds the amp ADSR
+# on its own but will not merge a second envelope, so without these the mod row
+# silently draws as four unrelated knobs instead of an envelope.
+viz={p['key']:p.get('viz') for p in caps['chain_params']}
+for k in ['attack','decay','sustain','release']:
+    assert viz[k]=={'group':'amp','role':k}, (k,viz[k])
+    assert viz['mod_'+k]=={'group':'mod','role':k}, ('mod_'+k,viz['mod_'+k])
 env=module['ui_hierarchy']['levels']['envelopes']
 assert env['knobs']==['attack','decay','sustain','release','mod_attack','mod_decay','mod_sustain','mod_release']
 assert module['ui_hierarchy']['levels']['presets']['list_param']=='preset'
