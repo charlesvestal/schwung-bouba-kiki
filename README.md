@@ -130,7 +130,8 @@ the shape per note without changing the saved knob position.
 **Factory Presets** — six sounds: Pure Bouba, Kiki Knock, Slow Prickle, Rubber
 Mouth, Glass Creature, Held Breath. Selecting one replaces all sixteen values.
 
-Velocity controls level and the outline pulse. Polyphonic pad pressure
+Velocity drives the modulation index as well as the level, so playing
+harder brightens rather than only getting louder, and it sets the outline pulse. Polyphonic pad pressure
 temporarily adds Kiki bite without changing the saved Morph value. The outline
 follows the newest active note, drawing the modulation the DSP actually applied.
 

@@ -9,9 +9,11 @@ archive="$repo_root/dist/bouba-kiki-module.tar.gz"
 file "$repo_root/dist/bouba-kiki/dsp.so" | grep -q 'ARM aarch64' || {
   echo 'Refusing to install a native test binary. Run ./scripts/build.sh first.'; exit 1;
 }
-# Installs are serial, so any stage left over from an earlier run is stale.
-# Pruning here bounds the rollback copies at one instead of one per install.
-ssh "$device" 'rm -rf /data/UserData/bouba-kiki-install.*'
+# Keep the two most recent staged packages and drop anything older, so the
+# rollback history is bounded without being erased. Sorted by mtime, not name:
+# mktemp suffixes are random and sort alphabetically in no useful order.
+ssh "$device" 'ls -dt /data/UserData/bouba-kiki-install.* 2>/dev/null | tail -n +3 |
+  while read stale; do [ -n "$stale" ] && rm -rf "$stale"; done' || true
 stage="$(ssh "$device" 'mktemp -d /data/UserData/bouba-kiki-install.XXXXXX')"
 [[ "$stage" =~ ^/data/UserData/bouba-kiki-install\.[a-zA-Z0-9]+$ ]] || exit 1
 # Drop the stage if we fail before the swap, but only once the module directory

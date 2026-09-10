@@ -67,7 +67,11 @@ void bk_voice_render(bk_voice_t *v,const bk_shape_params_t *p,
     // fold that spread back down as grit. Real FM instruments dull with pitch
     // for the same reason.
     const float keytrack=fminf(1,420.0f/fmaxf(20.0f,v->increment*v->sample_rate));
-    const float index=(.025f+.28f*p->spikes+.22f*p->pinch+.3f*p->morph+.2f*p->bulge+.2f*v->pressure)*keytrack;
+    // Velocity drives the index as well as the level. On an FM instrument that
+    // is the expressive gesture -- playing harder has to get brighter, not just
+    // louder -- and the index is already this engine's brightness control.
+    const float touch=.4f+.6f*v->velocity;
+    const float index=(.025f+.28f*p->spikes+.22f*p->pinch+.3f*p->morph+.2f*p->bulge+.2f*v->pressure)*keytrack*touch;
     // Free-running, and driven by Spikes and Pinch alone. Two operators at an
     // irrational ratio share no period, so the composite is aperiodic and the
     // ear stops hearing a definite pitch -- which IS the clangorous character
