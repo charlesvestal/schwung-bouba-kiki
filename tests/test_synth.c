@@ -82,7 +82,7 @@ int main(void) {
     float before[2], after[2];
     for (int i=0;i<300;i++) bk_synth_render(&steal,before,1);
     bk_synth_note_on(&steal,72,120); /* one past capacity: must steal */
-    assert(fabsf(steal.voices[0].steal_tail) > 1e-6f);
+    assert(fabsf(steal.voices[0].steal_tail[0]) > 1e-6f || fabsf(steal.voices[0].steal_tail[1]) > 1e-6f);
     bk_synth_render(&steal,after,1);
     assert(fabsf(after[0]-before[0]) < 0.7f);
 

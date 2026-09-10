@@ -9,14 +9,14 @@ typedef struct bk_voice {
     float velocity, pressure, target_pressure, envelope;
     bk_envelope_t amp_env,mod_env;
     float phase_a, phase_b, increment;
-    float sample_rate, slew;
+    float sample_rate, slew, steal_slew;
     float filter_b[3][3],filter_a[3][2],filter_z[2][3][2];
     float dc_in[2],dc_out[2],feedback;
     float contour[2][BK_CONTOUR_SIZE][2];
     float mod_contour[2][BK_CONTOUR_SIZE][2];
     int contour_index,contour_ready,min_gate;
     float wobble_phase;
-    float steal_tail, last_output;
+    float steal_tail[2], last_output[2];
     uint64_t age;
 } bk_voice_t;
 

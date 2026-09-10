@@ -13,10 +13,19 @@ static float scan(const float a[BK_CONTOUR_SIZE][2],const float b[BK_CONTOUR_SIZ
     return x+(y-x)*blend;
 }
 void bk_voice_start(bk_voice_t *v,int note,int velocity,uint64_t age,float sample_rate){
-    float tail=v->active?v->last_output:0;
+    float tail[2]={v->active?v->last_output[0]:0,v->active?v->last_output[1]:0};
     memset(v,0,sizeof(*v));v->active=v->held=1;v->note=note;v->age=age;
     v->sample_rate=sample_rate;v->slew=1-expf(-1/(.004f*sample_rate));
-    v->velocity=velocity/127.0f;v->increment=440*powf(2,(note-69)/12.0f)/sample_rate;
+    // Longer than the pressure slew: the tail has to outlast the new note's
+    // minimum 2 ms attack so the two overlap instead of meeting at a gap.
+    v->steal_slew=1-expf(-1/(.008f*sample_rate));
+    // Curve the velocity rather than using it raw. Straight through, a pad hit
+    // at 10 landed 31 dB down and a hit at 1 more than 50 dB down -- quiet and,
+    // because velocity also drives the index, dull with it, so soft hits simply
+    // vanished. The exponent lifts the bottom of the range into audibility
+    // while leaving the top untouched.
+    v->velocity=powf(fmaxf(1.0f,(float)velocity)/127.0f,.55f);
+    v->increment=440*powf(2,(note-69)/12.0f)/sample_rate;
     // Hold the gate open briefly so a note released inside the same block still sounds.
     v->min_gate=(int)(.004f*sample_rate);
     // Stagger each voice's ripple so a chord breathes instead of pulsing as one.
@@ -24,7 +33,9 @@ void bk_voice_start(bk_voice_t *v,int note,int velocity,uint64_t age,float sampl
     // any small integer step would leave them bunched within a few degrees.
     {   const float turns=(float)age*0.61803399f;
         v->wobble_phase=(turns-floorf(turns))*6.28318530718f; }
-    v->steal_tail=tail;
+    // Per channel: the outgoing note is a stereo signal, and collapsing it to
+    // one decaying mono value snaps the image to centre as it fades.
+    v->steal_tail[0]=tail[0];v->steal_tail[1]=tail[1];
     // Six-pole lowpass before 4x decimation. No detuned VA oscillators.
     const float q[3]={.51763809f,.70710678f,1.93185165f};
     const float k=tanf(3.14159265359f*fminf(13000,.30f*sample_rate)/(4*sample_rate));
@@ -57,11 +68,16 @@ void bk_voice_render(bk_voice_t *v,const bk_shape_params_t *p,
     bk_adsr_t pressure_amp=*amp;pressure_amp.attack*=1-.65f*v->pressure;
     v->envelope=bk_envelope_tick(&v->amp_env,&pressure_amp,v->sample_rate);
     bk_envelope_tick(&v->mod_env,mod,v->sample_rate);
-    if(!gate&&v->amp_env.stage==BK_ENV_IDLE){v->active=0;v->last_output=0;return;}
+    if(!gate&&v->amp_env.stage==BK_ENV_IDLE){v->active=0;v->last_output[0]=v->last_output[1]=0;return;}
+    // The ratio is taken from the knobs alone -- not from the modulation
+    // envelope, and not from pressure. Both of those move during a note, and
+    // the ratio sets where every sideband sits, so letting either one reach it
+    // slides the whole partial structure and the ear hears a glissando. A mod
+    // envelope aimed at Spikes then reads as a pitch envelope rather than a
+    // timbre one. Held still, the partials stay put and the envelope is heard
+    // as the shape changing, which is what it is.
+    const bk_shape_params_t knobs=*p;
     const bk_shape_params_t effective=bk_shape_modulate(p,mod_depth,v->mod_env.level,v->pressure);
-    // Pressure brightens through the index below, but is deliberately excluded
-    // from the ratio: sliding the ratio under a held note is heard as detuning.
-    const bk_shape_params_t tonal=bk_shape_modulate(p,mod_depth,v->mod_env.level,0);
     p=&effective;
     float l=0,r=0;
     // Key-track the index. The modulator is a whole contour, not a sine, so its
@@ -88,7 +104,7 @@ void bk_voice_render(bk_voice_t *v,const bk_shape_params_t *p,
     // flat. From 2 upwards every sideband folds back above the fundamental, so
     // the note keeps its pitch while the partials between are as inharmonic as
     // before. Metallic, not detuned.
-    const float ratio=2+1.41421356f*tonal.spikes+1.7320508f*tonal.pinch;
+    const float ratio=2+1.41421356f*knobs.spikes+1.7320508f*knobs.pinch;
     for(int os=0;os<4;os++){
         v->phase_a=wrap(v->phase_a+v->increment*.25f);
         v->phase_b=wrap(v->phase_b+v->increment*.25f*ratio);
@@ -104,8 +120,14 @@ void bk_voice_render(bk_voice_t *v,const bk_shape_params_t *p,
         out[ch]=raw[ch]-v->dc_in[ch]+.997f*v->dc_out[ch];
         v->dc_in[ch]=raw[ch];v->dc_out[ch]=out[ch];
     }
-    const float gain=v->velocity*v->envelope*.7f;
-    *left=out[0]*gain+v->steal_tail;*right=out[1]*gain+v->steal_tail;
-    v->steal_tail*=1-v->slew;if(fabsf(v->steal_tail)<1e-7f)v->steal_tail=0;
-    v->last_output=(*left+*right)*.5f;
+    // Pressure swells the level as well as the timbre. Leaning into a held pad
+    // should push the note forward, which is what aftertouch is for; the output
+    // saturator downstream keeps the top end from running away.
+    const float gain=v->velocity*v->envelope*.7f*(1+.45f*v->pressure);
+    *left=out[0]*gain+v->steal_tail[0];*right=out[1]*gain+v->steal_tail[1];
+    for(int ch=0;ch<2;ch++){
+        v->steal_tail[ch]*=1-v->steal_slew;
+        if(fabsf(v->steal_tail[ch])<1e-7f)v->steal_tail[ch]=0;
+    }
+    v->last_output[0]=*left;v->last_output[1]=*right;
 }
