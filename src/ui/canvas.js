@@ -78,28 +78,14 @@
             const pulse=st.velocity*.06*Math.exp(-Math.max(0,now-st.pulseAt)/100);
             const morph=clamp(effective.morph);
             const phase=wobble===0?0:st.phase;
-            // This page IS the preset browser -- it declares preset_browser, so
-            // the host merges the two rather than drawing a list of its own.
-            // Nothing but this draws the preset, so without a caption the page
-            // looks like a picture that happens to change when you jog.
-            const name=typeof values.preset_name==='string'?values.preset_name:'';
-            const caption=(name&&typeof ctx.print==='function'&&ctx.height>=28)?9:0;
-            const bodyH=ctx.height-caption;
-            const signature=[ctx.width,bodyH,morph,effective.bulge,effective.pinch,effective.spikes,effective.tilt,wobble,
+            const signature=[ctx.width,ctx.height,morph,effective.bulge,effective.pinch,effective.spikes,effective.tilt,wobble,
                              Math.round(st.envelope*100),Math.round(st.pressure*100),Math.round(phase*60),Math.round(pulse*300)].join('|');
             if(signature!==st.signature){
                 st.signature=signature;
-                st.points=shapePoints(Object.assign(effective,{envelope:st.envelope}),phase,ctx.width,bodyH,pulse);
+                st.points=shapePoints(Object.assign(effective,{envelope:st.envelope}),phase,ctx.width,ctx.height,pulse);
             }
             const p=st.points;
             for(let i=0;i<p.length;i++){const a=p[i],b=p[(i+1)%p.length];line(ctx,a[0],a[1],b[0],b[1]);}
-            if(!caption)return;
-            ctx.print(0,bodyH+1,name,1);
-            // The jog hint only if it clears the name; colliding with
-            // "Glass Creature" is worse than leaving it unsaid.
-            const hint='jog:preset';
-            const tw=(t)=>typeof ctx.textWidth==='function'?ctx.textWidth(t):String(t).length*6;
-            if(tw(name)+6+tw(hint)<=ctx.width)ctx.print(ctx.width-tw(hint)-1,bodyH+1,hint,1);
         }
     };
     globalThis.BOUBA_KIKI_SHAPE_FOR_TEST=(v,t,w,h)=>shapePoints(v,t*.001,w,h,0);

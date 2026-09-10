@@ -155,10 +155,8 @@
         "type": "canvas",
         "canvas_script": "canvas.js",
         "as_page": true,
-        "preset_browser": true,
         "extra_keys": [
-          "visual",
-          "preset_name"
+          "visual"
         ],
         "show_value": false
       }
@@ -179,9 +177,6 @@
           "attack",
           "release"
         ],
-        "list_param": "preset",
-        "count_param": "preset_count",
-        "name_param": "preset_name",
         "params": [
           {
             "key": "shape"
@@ -213,6 +208,10 @@
           {
             "level": "envelope",
             "label": "Envelope"
+          },
+          {
+            "level": "presets",
+            "label": "Factory Presets"
           }
         ]
       },
@@ -238,6 +237,13 @@
             "key": "release"
           }
         ]
+      },
+      "presets": {
+        "label": "Factory Presets",
+        "list_param": "preset",
+        "count_param": "preset_count",
+        "name_param": "preset_name",
+        "knobs": []
       }
     }
   }

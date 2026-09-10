@@ -25,8 +25,7 @@ assert not any(k.startswith("mod_") for k in params), "modulation was removed"
 canvas = params["shape"]
 assert canvas["type"] == "canvas" and canvas["as_page"] is True
 assert canvas["canvas_script"] == "canvas.js"
-# preset_name because the page is its own preset browser and draws the name.
-assert canvas["extra_keys"] == ["visual", "preset_name"]
+assert canvas["extra_keys"] == ["visual"]
 assert params["visual"]["access"] == "read"
 
 root = module["ui_hierarchy"]["levels"]["root"]
@@ -41,13 +40,7 @@ for k in ['attack','decay','sustain','release']:
     assert viz[k]=={'group':'amp','role':k}, (k,viz[k])
 env=module['ui_hierarchy']['levels']['envelope']
 assert env['knobs']==['attack','decay','sustain','release']
-# The canvas page declares preset_browser and root carries the browser, so the
-# two merge into one page -- and a preset browser is emitted before the level's
-# grids, which is what puts the instrument's own picture first on load.
-root_lvl=module['ui_hierarchy']['levels']['root']
-assert root_lvl['list_param']=='preset' and root_lvl['count_param']=='preset_count'
-assert params['shape']['preset_browser'] is True
-assert 'presets' not in module['ui_hierarchy']['levels']
+assert module['ui_hierarchy']['levels']['presets']['list_param']=='preset'
 assert help_doc["title"] == "Bouba-Kiki"
 assert help_doc.get("children") and all(p.get("lines") for p in help_doc["children"])
 adapter = open("src/dsp/bouba_kiki_plugin.c").read()

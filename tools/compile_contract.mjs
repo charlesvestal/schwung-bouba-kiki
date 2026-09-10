@@ -14,17 +14,13 @@ const envelopeViz={attack:'attack',decay:'decay',sustain:'sustain',release:'rele
 const params=keys.map((key,i)=>({key,name:names[i],short_name:short[i],type:'float',min:min[i],max:max[i],step:.01,default:defaults[i],...(envelopeViz[key]?{viz:{group:'amp',role:envelopeViz[key]}}:{})}));
 params.push({key:'preset',name:'Preset',type:'int',min:0,max:5,step:1,default:0},
  {key:'visual',name:'Activity',type:'string',access:'read'},
- // preset_browser merges this page INTO the level's preset browser instead of
- // adding a second one, and preset browsers are emitted before a level's grids
- // -- which is how the instrument lands on its own picture rather than on a
- // page of knobs. monksynth's face page does the same.
- {key:'shape',name:'Shape',short_name:'Shpe',type:'canvas',canvas_script:'canvas.js',as_page:true,preset_browser:true,extra_keys:['visual','preset_name'],show_value:false});
+ {key:'shape',name:'Shape',short_name:'Shpe',type:'canvas',canvas_script:'canvas.js',as_page:true,extra_keys:['visual'],show_value:false});
 const hierarchy={pad_layout:'chromatic',levels:{
  root:{label:'Bouba-Kiki',knobs:['morph','bulge','pinch','spikes','tilt','wobble','attack','release'],
-  list_param:'preset',count_param:'preset_count',name_param:'preset_name',
   params:[{key:'shape'},...['morph','bulge','pinch','spikes','tilt','wobble','attack','release'].map(key=>({key})),
-   {level:'envelope',label:'Envelope'}]},
- envelope:{label:'Envelope',knobs:['attack','decay','sustain','release'],params:['attack','decay','sustain','release'].map(key=>({key}))}
+   {level:'envelope',label:'Envelope'},{level:'presets',label:'Factory Presets'}]},
+ envelope:{label:'Envelope',knobs:['attack','decay','sustain','release'],params:['attack','decay','sustain','release'].map(key=>({key}))},
+ presets:{label:'Factory Presets',list_param:'preset',count_param:'preset_count',name_param:'preset_name',knobs:[]}
 }};
 const presets=[
  ['Pure Bouba',{}],
