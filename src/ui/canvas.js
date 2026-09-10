@@ -117,21 +117,16 @@
                 st.signature=signature;
                 const shape=Object.assign({},effective,{envelope:st.envelope});
                 st.points=shapePoints(shape,phase,ctx.width,ctx.height,pulse,hz);
-                /* The second operator reads its own curve, sharpened against
-                   this one and converging back onto it as Pinch and Spikes
-                   open -- synth.c builds it the same way. Drawing it is the
-                   only way to see the relationship that makes the sound. */
-                const clang=Math.max(clamp(shape.pinch),clamp(shape.spikes));
-                const room=(1-clang)*(1-clang);
-                st.modPoints=room>.02
-                    ?shapePoints(Object.assign({},shape,{spikes:Math.min(1,clamp(shape.spikes)+.55*room)}),
-                                 phase,ctx.width,ctx.height,pulse,hz)
-                    :null;
+                /* The modulator's own contour was drawn here, dotted, on the
+                   grounds that two curves exist in the DSP and only one was on
+                   screen. It does not survive being looked at: shapePoints
+                   normalises every curve to fill the frame, so the modulator's
+                   extra spikes come back the same size as the carrier's whole
+                   body and the two cross everywhere. What reads as a
+                   relationship in the numbers renders as a scribble. Drawing it
+                   truthfully would need a shared scale and a frame it could
+                   overflow, which is a different picture than this one. */
             }
-            /* Dotted, and drawn first, so the carrier's outline stays the
-               figure and this stays the ground on a one-bit display. */
-            const m=st.modPoints;
-            if(m)for(let i=0;i<m.length;i+=2){const a=m[i],b=m[(i+1)%m.length];line(ctx,a[0],a[1],b[0],b[1]);}
             const p=st.points;
             for(let i=0;i<p.length;i++){const a=p[i],b=p[(i+1)%p.length];line(ctx,a[0],a[1],b[0],b[1]);}
         }
