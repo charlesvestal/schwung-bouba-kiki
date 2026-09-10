@@ -151,7 +151,13 @@ Morph, Bulge, Tilt and Wobble hold the pitch exactly.
 on the shape page for quick reach; Decay and Sustain live here.
 
 **Factory Presets** — six sounds: Pure Bouba, Kiki Knock, Slow Prickle, Rubber
-Mouth, Glass Creature, Held Breath. Selecting one replaces all ten values.
+Mouth, Glass Creature, Held Breath, browsed on the Shape page itself. Selecting
+one replaces all ten values.
+
+The Shape page loads first. It declares `preset_browser`, which merges it into
+the level's preset browser rather than adding a second page, and a preset
+browser is emitted ahead of a level's knob grids — so the instrument opens on
+its own picture with every knob still live under the encoders.
 
 Velocity drives the modulation index as well as the level, so playing harder
 brightens rather than only getting louder, and it sets the outline pulse.

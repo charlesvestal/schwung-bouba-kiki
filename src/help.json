@@ -51,7 +51,9 @@
     {
       "title": "Presets",
       "lines": [
-        "Six factory sounds.",
+        "Six factory sounds",
+        "on the Shape page:",
+        "jog to change.",
         "Pure Bouba is the",
         "undeformed default.",
         "Presets replace all",
@@ -61,8 +63,10 @@
     {
       "title": "Pages",
       "lines": [
-        "Shape, Envelope and",
-        "Factory Presets.",
+        "Shape first, with the",
+        "presets on it, then",
+        "the knob grid, then",
+        "Envelope.",
         "The outline follows",
         "the newest note."
       ]
