@@ -7,7 +7,34 @@
     const clamp = v => Math.max(0,Math.min(1,Number.isFinite(Number(v))?Number(v):0));
     const states=new Map();
 
-    function shapePoints(values, phase, width, height, pulse) {
+    /* The same smoothing synth.c's band_limit applies, on the same schedule, so
+       the drawn teeth match the heard ones. A 256-point contour is a wavetable
+       and its narrow features are high harmonics of it: above about 420 Hz the
+       DSP rounds them off by a width that follows the note, and a picture that
+       kept them sharp would be showing partials that are not in the sound. */
+    function bandLimit(raw, hz) {
+        if(!(hz>420))return raw;
+        const keep=Math.floor(15000/hz);
+        if(keep>=raw.length/2)return raw;
+        let width=Math.floor(raw.length/(keep>0?keep:1));
+        if(width<2)return raw;
+        if(width>raw.length/4)width=Math.floor(raw.length/4);
+        const half=width>>1,n=raw.length;
+        let out=raw;
+        for(let pass=0;pass<2;pass++){
+            const src=out,dst=new Array(n);
+            let sx=0,sy=0;
+            for(let k=0;k<width;k++){const j=((k-half)%n+n)%n;sx+=src[j][0];sy+=src[j][1];}
+            for(let i=0;i<n;i++){
+                dst[i]=[sx/width,sy/width];
+                const drop=((i-half)%n+n)%n,add=((i-half+width)%n+n)%n;
+                sx+=src[add][0]-src[drop][0];sy+=src[add][1]-src[drop][1];
+            }
+            out=dst;
+        }
+        return out;
+    }
+    function shapePoints(values, phase, width, height, pulse, hz) {
         const morph=clamp(values.morph),bulge=clamp(values.bulge),pinch=clamp(values.pinch);
         const spikes=clamp(values.spikes),tilt=clamp(values.tilt)-0.5,wobble=clamp(values.wobble);
         const bite=clamp(morph+clamp(values.pressure)*0.3);
@@ -29,13 +56,17 @@
                 y*=warp*(1+.6*pinch);
                 x+=2.4*tilt*y;
             }
-            raw.push([x,y]);maxX=Math.max(maxX,Math.abs(x));maxY=Math.max(maxY,Math.abs(y));
+            raw.push([x,y]);
+        }
+        const smoothed=bandLimit(raw,hz||0);
+        for(let i=0;i<smoothed.length;i++){
+            maxX=Math.max(maxX,Math.abs(smoothed[i][0]));maxY=Math.max(maxY,Math.abs(smoothed[i][1]));
         }
         const envelope=values.envelope===undefined?1:clamp(values.envelope);
         const scale=.46*Math.min(width/maxX,height/maxY)*(1+Math.min(.06,pulse||0))*(.82+.18*envelope);
         const cx=(width-1)/2,cy=(height-1)/2;
-        return raw.map(([x,y])=>[Math.max(0,Math.min(width-1,Math.round(cx+x*scale))),
-                                 Math.max(0,Math.min(height-1,Math.round(cy+y*scale)))]);
+        return smoothed.map(([x,y])=>[Math.max(0,Math.min(width-1,Math.round(cx+x*scale))),
+                                      Math.max(0,Math.min(height-1,Math.round(cy+y*scale)))]);
     }
     function line(ctx,x0,y0,x1,y1){
         if(x0===x1&&y0===y1)return;
@@ -78,12 +109,29 @@
             const pulse=st.velocity*.06*Math.exp(-Math.max(0,now-st.pulseAt)/100);
             const morph=clamp(effective.morph);
             const phase=wobble===0?0:st.phase;
+            const hz=v.length>=19&&isFinite(v[18])?v[18]:0;
             const signature=[ctx.width,ctx.height,morph,effective.bulge,effective.pinch,effective.spikes,effective.tilt,wobble,
-                             Math.round(st.envelope*100),Math.round(st.pressure*100),Math.round(phase*60),Math.round(pulse*300)].join('|');
+                             Math.round(st.envelope*100),Math.round(st.pressure*100),Math.round(phase*60),
+                             Math.round(pulse*300),Math.round(hz)].join('|');
             if(signature!==st.signature){
                 st.signature=signature;
-                st.points=shapePoints(Object.assign(effective,{envelope:st.envelope}),phase,ctx.width,ctx.height,pulse);
+                const shape=Object.assign({},effective,{envelope:st.envelope});
+                st.points=shapePoints(shape,phase,ctx.width,ctx.height,pulse,hz);
+                /* The second operator reads its own curve, sharpened against
+                   this one and converging back onto it as Pinch and Spikes
+                   open -- synth.c builds it the same way. Drawing it is the
+                   only way to see the relationship that makes the sound. */
+                const clang=Math.max(clamp(shape.pinch),clamp(shape.spikes));
+                const room=(1-clang)*(1-clang);
+                st.modPoints=room>.02
+                    ?shapePoints(Object.assign({},shape,{spikes:Math.min(1,clamp(shape.spikes)+.55*room)}),
+                                 phase,ctx.width,ctx.height,pulse,hz)
+                    :null;
             }
+            /* Dotted, and drawn first, so the carrier's outline stays the
+               figure and this stays the ground on a one-bit display. */
+            const m=st.modPoints;
+            if(m)for(let i=0;i<m.length;i+=2){const a=m[i],b=m[(i+1)%m.length];line(ctx,a[0],a[1],b[0],b[1]);}
             const p=st.points;
             for(let i=0;i<p.length;i++){const a=p[i],b=p[(i+1)%p.length];line(ctx,a[0],a[1],b[0],b[1]);}
         }

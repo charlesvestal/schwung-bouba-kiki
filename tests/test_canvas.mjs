@@ -77,6 +77,48 @@ assert.notEqual(capture('9,0,0,0,0',1000),capture('10,0,0,0,1',1000),
 // knob values, so pressure's deformation shows without waiting for a poll.
 // The offsets stay small enough here that adding them to the page's morph of
 // .5 does not reach the rail, where both would clamp to the same outline.
+// The drawing must round the teeth off by pitch exactly as the DSP does, or it
+// shows partials the sound does not contain. Field 19 carries the frequency.
+{
+  const seg=(hz)=>{
+    const out=[];
+    overlay.drawPage({width:128,height:48,line(...p){out.push(p);}},
+      {values:{...base,morph:.5,spikes:1,
+               visual:['30'+String(hz|0),0,0,0,1,.5,0,0,1,.5,0,0,.5,0,0,1,.5,0,hz].join(',')},nowMs:1000});
+    return JSON.stringify(out);
+  };
+  assert.notEqual(seg(130),seg(1500),'a high note must draw a smoother outline than a low one');
+  assert.equal(seg(130),seg(200),'below 420 Hz nothing is smoothed, so the outline is identical');
+}
+// The modulator scans its own sharpened curve; the page draws it, and it
+// converges onto the carrier's outline as Pinch and Spikes open. Counting
+// line() calls would not show this -- it skips zero-length segments, so the
+// count tracks how many distinct pixels a shape covers, not how many curves
+// were drawn. Compare the drawn segments against the carrier's own instead.
+{
+  const drawn=(spikes)=>{
+    const out=new Set();
+    overlay.drawPage({width:128,height:48,line(...p){out.add(p.join(','));}},
+      {values:{...base,morph:.4,spikes,
+               visual:['4'+String(Math.round(spikes*100)),0,0,0,1,.4,0,0,spikes,.5,0,0,.4,0,0,spikes,.5,0,130].join(',')},nowMs:1000});
+    return out;
+  };
+  const carrierOnly=(spikes)=>{
+    const pts=points({...base,morph:.4,spikes,envelope:1},0,128,48);
+    const out=new Set();
+    for(let i=0;i<pts.length;i++){
+      const a=pts[i],b=pts[(i+1)%pts.length];
+      if(a[0]!==b[0]||a[1]!==b[1])out.add([a[0],a[1],b[0],b[1],1].join(','));
+    }
+    return out;
+  };
+  const open=drawn(0), openCarrier=carrierOnly(0);
+  const extra=[...open].filter((seg)=>!openCarrier.has(seg));
+  assert(extra.length>0,'the modulator curve must be drawn alongside the carrier');
+  const shut=drawn(1), shutCarrier=carrierOnly(1);
+  assert.equal([...shut].filter((seg)=>!shutCarrier.has(seg)).length,0,
+    'with Spikes open the modulator has converged onto the carrier and adds nothing');
+}
 const telemetry=(id,morph)=>[id,0,0,0,1, morph,0,0,0,.5,0, 0, 0,0,0,0,.5,0].join(',');
 assert.notEqual(capture(telemetry(11,.1),1000),capture(telemetry(12,.4),1000),
   'the offset the DSP reports must reach the drawn contour');

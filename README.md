@@ -159,6 +159,20 @@ Polyphonic pad pressure adds bite and swells the level without changing the
 saved Morph value. The outline follows the newest active note, drawing the
 deformation the DSP actually applied.
 
+The picture shows both operators. The solid outline is the carrier's contour;
+the dotted one inside it is the modulator's, sharpened against the carrier and
+converging onto it as Pinch and Spikes open — the same relationship synth.c
+builds, and the thing that makes the sound. The outline is also band-limited by
+the played note exactly as the DSP band-limits the wavetable, so the teeth you
+see at the top of the keyboard are the teeth you hear; the note's frequency
+rides the telemetry line for that.
+
+There is deliberately no scanning playhead. The carrier crosses the contour
+about 130 times a second at C3 against a display refreshing at a few tens of
+frames, so a marker at its true position would be an aliasing artifact rather
+than a playhead — the one thing on this instrument that cannot be drawn
+honestly.
+
 ## Build and test
 
 ```bash

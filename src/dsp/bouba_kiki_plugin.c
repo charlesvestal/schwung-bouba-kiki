@@ -224,11 +224,17 @@ static int get_param(void *ptr, const char *key, char *buf, int len) {
         selected ? &in->synth.current : &in->synth.shape;
     snprintf(t, sizeof(t),
              "%u,%u,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%."
-             "4f,%.4f,%.4f,%.4f,%.4f",
+             "4f,%.4f,%.4f,%.4f,%.4f,%.1f",
              in->identity, in->note_serial, in->note_velocity, pressure, env,
              p.morph, p.bulge, p.pinch, p.spikes, p.tilt, p.wobble,
              in->synth.wobble_phase, base->morph, base->bulge, base->pinch,
-             base->spikes, base->tilt, base->wobble);
+             base->spikes, base->tilt, base->wobble,
+             /* The note's frequency, so the drawing can round the teeth off by
+                pitch exactly as the DSP does. Without it the picture shows
+                spikes at the top of the keyboard that are provably not in the
+                sound, which is the one divergence this instrument cannot
+                afford. */
+             selected ? selected->increment * selected->sample_rate : 0.0f);
     return copy_string(buf, len, t);
   }
   if (!strcmp(key, "pressure")) {
