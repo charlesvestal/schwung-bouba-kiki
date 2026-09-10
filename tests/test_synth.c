@@ -78,10 +78,10 @@ int main(void) {
     /* Stealing carries the old sample into a short decay instead of cutting it. */
     bk_synth_t steal;
     bk_synth_init(&steal, 44100.0f); bk_synth_set_attack_release(&steal, 0, 0.2f);
-    for (int n=60;n<64;n++) bk_synth_note_on(&steal,n,120);
+    for (int n=60;n<60+BK_VOICES;n++) bk_synth_note_on(&steal,n,120);
     float before[2], after[2];
     for (int i=0;i<300;i++) bk_synth_render(&steal,before,1);
-    bk_synth_note_on(&steal,72,120);
+    bk_synth_note_on(&steal,72,120); /* one past capacity: must steal */
     assert(fabsf(steal.voices[0].steal_tail) > 1e-6f);
     bk_synth_render(&steal,after,1);
     assert(fabsf(after[0]-before[0]) < 0.7f);
@@ -97,15 +97,15 @@ int main(void) {
     bk_synth_init(&s,44100);
     assert(bk_synth_active_voices(&s) == 0);
 
-    for (int n = 60; n < 64; ++n) bk_synth_note_on(&s, n, 100);
-    assert(bk_synth_active_voices(&s) == 4);
-    for (int n = 60; n < 64; ++n) assert(bk_synth_has_note(&s, n));
-    bk_synth_note_on(&s, 64, 100);
-    assert(!bk_synth_has_note(&s, 60) && bk_synth_has_note(&s, 64));
+    for (int n = 60; n < 60+BK_VOICES; ++n) bk_synth_note_on(&s, n, 100);
+    assert(bk_synth_active_voices(&s) == BK_VOICES);
+    for (int n = 60; n < 60+BK_VOICES; ++n) assert(bk_synth_has_note(&s, n));
+    bk_synth_note_on(&s, 60+BK_VOICES, 100);
+    assert(!bk_synth_has_note(&s, 60) && bk_synth_has_note(&s, 60+BK_VOICES));
 
     bk_synth_note_off(&s, 61);
     render_peak(&s, 2);
-    bk_synth_note_on(&s, 65, 100);
+    bk_synth_note_on(&s, 61+BK_VOICES, 100);
     assert(!bk_synth_has_note(&s, 61) && bk_synth_has_note(&s, 62));
 
     bk_synth_set_attack_release(&s, 0.0f, 0.0f);

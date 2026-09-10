@@ -1,6 +1,6 @@
 # Bouba-Kiki for Schwung
 
-A four-voice stereo **contour synthesizer** for Ableton Move via Schwung. The
+A six-voice stereo **contour synthesizer** for Ableton Move via Schwung. The
 published **Bouba** and **Kiki** silhouettes are the neutral bases; six geometric
 controls deform them. The outline on screen and the sound are the same object:
 the curve you see is the curve the oscillators read.

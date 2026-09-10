@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include "voice.h"
 
-#define BK_VOICES 4
+#define BK_VOICES 6
 
 typedef struct bk_synth {
     float sample_rate;
