@@ -14,10 +14,20 @@ waveform-family engine with direct contour scanning.
 The shape is a closed 2D curve sampled at 256 points, so every point is an
 `(x, y)` pair rather than a single sample. Three things follow from that.
 
-**The curve is the operator waveform.** Each voice runs two phase accumulators
-over the same curve. The second one's Y channel phase-modulates the first one's
-read position, with a one-sample feedback term — two-operator feedback phase
-modulation whose operators are arbitrary geometry instead of sines.
+**The curve is the operator waveform.** Each voice runs two phase accumulators,
+and the second one's Y channel phase-modulates the first one's read position
+with a one-sample feedback term — two-operator feedback phase modulation whose
+operators are arbitrary geometry instead of sines.
+
+The two operators do not read the same curve. The carrier scans the shape you
+see; the modulator scans its own contour, sharpened relative to it. A
+modulator's own harmonics multiply out into sidebands, so a spikier modulator
+is a brighter result, and this is what gives Morph and pressure real range —
+171 to 972 Hz for Morph — while both stay at a 1:1 ratio and therefore stay in
+tune. The sharpening retreats, squared, as Pinch and Spikes open, because those
+two earn their character from an irrational ratio and flooding the spectrum with
+harmonic sidebands would dilute it; at their extremes the modulator is the
+carrier's own contour again, bit for bit.
 
 **One shape drives three FM parameters at once.** The geometric controls set
 the operator waveforms, the operator frequency ratio and the modulation index
@@ -130,10 +140,11 @@ the shape per note without changing the saved knob position.
 **Factory Presets** — six sounds: Pure Bouba, Kiki Knock, Slow Prickle, Rubber
 Mouth, Glass Creature, Held Breath. Selecting one replaces all sixteen values.
 
-Velocity drives the modulation index as well as the level, so playing
-harder brightens rather than only getting louder, and it sets the outline pulse. Polyphonic pad pressure
-temporarily adds Kiki bite without changing the saved Morph value. The outline
-follows the newest active note, drawing the modulation the DSP actually applied.
+Velocity drives the modulation index as well as the level, so playing harder
+brightens rather than only getting louder, and it sets the outline pulse.
+Polyphonic pad pressure temporarily adds Kiki bite without changing the saved
+Morph value. The outline follows the newest active note, drawing the modulation
+the DSP actually applied.
 
 Each voice's bounded 256-point contour is rebuilt per audio block and
 crossfaded per sample, so geometry changes do not zipper; control targets settle

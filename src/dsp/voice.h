@@ -13,6 +13,7 @@ typedef struct bk_voice {
     float filter_b[3][3],filter_a[3][2],filter_z[2][3][2];
     float dc_in[2],dc_out[2],feedback;
     float contour[2][BK_CONTOUR_SIZE][2];
+    float mod_contour[2][BK_CONTOUR_SIZE][2];
     int contour_index,contour_ready,min_gate;
     float wobble_phase;
     float steal_tail, last_output;
@@ -25,6 +26,8 @@ void bk_voice_render(bk_voice_t *v, const bk_shape_params_t *shape,
                      const bk_adsr_t *amp,const bk_adsr_t *mod,float motion,
                      const float mod_depth[6],
                      const float previous[BK_CONTOUR_SIZE][2],
-                     const float next[BK_CONTOUR_SIZE][2],float blend,
+                     const float next[BK_CONTOUR_SIZE][2],
+                     const float mod_previous[BK_CONTOUR_SIZE][2],
+                     const float mod_next[BK_CONTOUR_SIZE][2],float blend,
                      float *left, float *right);
 #endif

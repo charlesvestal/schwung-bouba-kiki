@@ -45,7 +45,9 @@ void bk_voice_render(bk_voice_t *v,const bk_shape_params_t *p,
                      const bk_adsr_t *amp,const bk_adsr_t *mod,float motion,
                      const float mod_depth[6],
                      const float previous[BK_CONTOUR_SIZE][2],
-                     const float next[BK_CONTOUR_SIZE][2],float blend,
+                     const float next[BK_CONTOUR_SIZE][2],
+                     const float mod_previous[BK_CONTOUR_SIZE][2],
+                     const float mod_next[BK_CONTOUR_SIZE][2],float blend,
                      float *left,float *right){
     *left=*right=0;if(!v->active)return;
     v->pressure+=(v->target_pressure-v->pressure)*v->slew;
@@ -84,7 +86,7 @@ void bk_voice_render(bk_voice_t *v,const bk_shape_params_t *p,
     for(int os=0;os<4;os++){
         v->phase_a=wrap(v->phase_a+v->increment*.25f);
         v->phase_b=wrap(v->phase_b+v->increment*.25f*ratio);
-        const float mod=scan(previous,next,v->phase_b,1,blend);
+        const float mod=scan(mod_previous,mod_next,v->phase_b,1,blend);
         const float phase=v->phase_a+index*mod+.06f*p->wobble*v->feedback;
         const float x=scan(previous,next,phase,0,blend);
         const float y=scan(previous,next,phase+.035f*motion,1,blend);

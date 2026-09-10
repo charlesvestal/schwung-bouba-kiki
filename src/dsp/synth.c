@@ -38,9 +38,8 @@ static void band_limit(float c[BK_CONTOUR_SIZE][2],float hz) {
         memcpy(c,tmp,sizeof(tmp));
     }
 }
-static void prepare_contour(bk_synth_t *s,float pressure,float mod_level,float hz,float phase,float out[BK_CONTOUR_SIZE][2]) {
-    bk_shape_params_t shape=bk_shape_modulate(&s->current,s->mod_depth,mod_level,pressure);
-    bk_contour_build(&shape,phase,out);
+static void prepare_contour(const bk_shape_params_t *shape,float hz,float phase,float out[BK_CONTOUR_SIZE][2]) {
+    bk_contour_build(shape,phase,out);
     float mean[2]={0,0},peak=.1f,energy=0;
     for(int i=0;i<BK_CONTOUR_SIZE;i++)for(int c=0;c<2;c++)mean[c]+=out[i][c]/BK_CONTOUR_SIZE;
     for(int i=0;i<BK_CONTOUR_SIZE;i++)for(int c=0;c<2;c++){
@@ -171,10 +170,26 @@ void bk_synth_render(bk_synth_t *s, float *out_lr, int frames) {
         motion_start[i]=sinf(v->wobble_phase)*s->current.wobble;
         v->wobble_phase=fmodf(v->wobble_phase+advance,BK_TAU);
         motion_end[i]=sinf(v->wobble_phase)*s->current.wobble;
-        prepare_contour(s,v->pressure,predicted.level,v->increment*s->sample_rate,
-                        v->wobble_phase,v->contour[v->contour_index]);
+        const bk_shape_params_t shape=bk_shape_modulate(&s->current,s->mod_depth,predicted.level,v->pressure);
+        const float hz=v->increment*s->sample_rate;
+        prepare_contour(&shape,hz,v->wobble_phase,v->contour[v->contour_index]);
+        /* The modulator scans its own contour, sharpened relative to the
+           carrier's. In phase modulation the modulator's own harmonics multiply
+           out into sidebands, so a spikier modulator is a brighter result --
+           this is what gives Morph and pressure real range while they stay at a
+           1:1 ratio and therefore stay in tune.
+           The sharpening retreats where Pinch and Spikes open, and squared so
+           it retreats quickly: those two earn their character from an
+           irrational ratio, and flooding the spectrum with harmonic sidebands
+           would dilute exactly what makes them worth having. At either
+           extreme the modulator is the carrier's own contour again. */
+        bk_shape_params_t sharpened=shape;
+        const float clang=fmaxf(shape.pinch,shape.spikes),open_room=(1-clang)*(1-clang);
+        sharpened.spikes=fminf(1,shape.spikes+.55f*open_room);
+        prepare_contour(&sharpened,hz,v->wobble_phase,v->mod_contour[v->contour_index]);
         if(!v->contour_ready){
             memcpy(v->contour[1-v->contour_index],v->contour[v->contour_index],sizeof(v->contour[0]));
+            memcpy(v->mod_contour[1-v->contour_index],v->mod_contour[v->contour_index],sizeof(v->mod_contour[0]));
             v->contour_ready=1;
         }
     }
@@ -191,7 +206,9 @@ void bk_synth_render(bk_synth_t *s, float *out_lr, int frames) {
             bk_voice_t *voice=&s->voices[v];
             const float motion=motion_start[v]+(motion_end[v]-motion_start[v])*(float)f/(float)frames;
             float vl,vr; bk_voice_render(voice,&tone,&amp,&mod,motion,depth,
-                voice->contour[1-voice->contour_index],voice->contour[voice->contour_index],blend,&vl,&vr);
+                voice->contour[1-voice->contour_index],voice->contour[voice->contour_index],
+                voice->mod_contour[1-voice->contour_index],voice->mod_contour[voice->contour_index],
+                blend,&vl,&vr);
             l+=vl;r+=vr;
         }
         // Smooth rational saturation protects chords without shrinking quiet notes.
