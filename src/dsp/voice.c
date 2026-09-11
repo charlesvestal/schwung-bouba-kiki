@@ -78,19 +78,27 @@ void bk_voice_render(bk_voice_t *v,const bk_shape_params_t *p,
     const bk_shape_params_t effective=bk_shape_modulate(p,v->pressure);
     p=&effective;
     float l=0,r=0;
-    // No key-track on the index. One was added on the assumption that the
-    // modulator's harmonics would fold at the top of the keyboard, but it turns
-    // out to prevent nothing: band-limiting the contour itself already removes
-    // everything that would fold, and taking the key-track out leaves the
-    // energy below the fundamental unchanged at every note -- lower, at two of
-    // them. What it did do was scale the index to 40% at C6 and 20% at C7,
-    // which is audible as the top of the keyboard going smooth while the
-    // bottom stays growly. That was timbre loss buying nothing.
+    // Key-track the index UPWARD, which is the opposite of the usual move and
+    // of what was here first.
+    //
+    // The contour is band-limited by pitch, so the top of the keyboard has far
+    // fewer harmonics to be bright with -- about seven at C7 against a couple
+    // of hundred at C2, because the eighth would sit above 16 kHz. Nothing can
+    // return those. What can be done is to fill the band that remains: driving
+    // the modulation harder puts more sidebands inside it, and relative
+    // brightness at C6 goes from 2.2x the fundamental to 5.3x, at C7 from 1.9x
+    // to 3.8x, with the bottom two octaves untouched.
+    //
+    // It also lowers the energy below the fundamental rather than raising it,
+    // 0.06 to 0.11 percent against 0.24 to 0.29. Pushing past this buys
+    // nothing -- at 4x, C7 comes out no brighter, which is the available band
+    // being full.
+    const float keytrack=fminf(2.5f,fmaxf(1.f,v->increment*v->sample_rate/400.f));
     // Velocity drives the index as well as the level. On an FM instrument that
     // is the expressive gesture -- playing harder has to get brighter, not just
     // louder -- and the index is already this engine's brightness control.
     const float touch=.4f+.6f*v->velocity;
-    const float index=(.025f+.28f*p->spikes+.22f*p->pinch+.3f*p->morph+.2f*p->bulge+.2f*v->pressure)*touch;
+    const float index=(.025f+.28f*p->spikes+.22f*p->pinch+.3f*p->morph+.2f*p->bulge+.2f*v->pressure)*touch*keytrack;
     // Free-running and irrational, driven by Spikes and Pinch alone. Two
     // operators at an irrational ratio share no period, so the partials stop
     // lining up into a harmonic series -- which is the clangorous character

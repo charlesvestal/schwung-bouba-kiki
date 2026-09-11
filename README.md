@@ -71,14 +71,16 @@ periodic, and Pinch and Spikes must not.
 The contour is a wavetable, so its narrow teeth are high harmonics of it and
 fold down at the top of the keyboard. It is smoothed by a width that follows the
 note, inert below 420 Hz, keeping only what lands under about 15 kHz — below the
-voice's own 13 kHz lowpass, so nothing audible is lost. The index is deliberately
-not key-tracked: one was tried and prevented nothing measurable, while scaling
-the index to 40% at C6 and 20% at C7, which reads as the top of the keyboard
-going smooth while the bottom stays growly.
+voice's own 13 kHz lowpass, so nothing audible is lost.
 
-Brightness relative to the fundamental still falls with pitch, and that part is
-arithmetic rather than choice: with everything above 15 kHz gone, a note at
-2 kHz has only seven harmonics left to be bright with.
+That leaves the top of the keyboard with far fewer harmonics to be bright with:
+about seven at C7 against a couple of hundred at C2. Nothing returns them, so
+the index is key-tracked *upward* instead, to fill the band that remains —
+relative brightness at C6 goes from 2.2x the fundamental to 5.3x and at C7 from
+1.9x to 3.8x, with the bottom two octaves untouched and the energy below the
+fundamental lower than before. A downward key-track was tried first, on the
+assumption that the modulator's harmonics fold up there; they do not, and it
+only made the top smooth while the bottom stayed growly.
 
 Each voice also carries its own ripple phase, so a held chord moves internally
 rather than breathing in lockstep.
