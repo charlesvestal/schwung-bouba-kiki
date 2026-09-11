@@ -1,7 +1,7 @@
 {
   "id": "bouba-kiki",
   "name": "Bouba-Kiki",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Contour synth — a shape drives FM operators",
   "author": "Charles Vestal",
   "component_type": "sound_generator",
