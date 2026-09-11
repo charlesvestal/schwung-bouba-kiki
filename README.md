@@ -69,8 +69,16 @@ holds both halves of this: Morph, Bulge, Tilt, Wobble and pressure must stay
 periodic, and Pinch and Spikes must not.
 
 The contour is a wavetable, so its narrow teeth are high harmonics of it and
-fold down at the top of the keyboard. It is smoothed by a width that follows
-the note and the index is key-tracked, both inert below 420 Hz.
+fold down at the top of the keyboard. It is smoothed by a width that follows the
+note, inert below 420 Hz, keeping only what lands under about 15 kHz — below the
+voice's own 13 kHz lowpass, so nothing audible is lost. The index is deliberately
+not key-tracked: one was tried and prevented nothing measurable, while scaling
+the index to 40% at C6 and 20% at C7, which reads as the top of the keyboard
+going smooth while the bottom stays growly.
+
+Brightness relative to the fundamental still falls with pitch, and that part is
+arithmetic rather than choice: with everything above 15 kHz gone, a note at
+2 kHz has only seven harmonics left to be bright with.
 
 Each voice also carries its own ripple phase, so a held chord moves internally
 rather than breathing in lockstep.

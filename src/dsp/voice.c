@@ -78,16 +78,19 @@ void bk_voice_render(bk_voice_t *v,const bk_shape_params_t *p,
     const bk_shape_params_t effective=bk_shape_modulate(p,v->pressure);
     p=&effective;
     float l=0,r=0;
-    // Key-track the index. The modulator is a whole contour, not a sine, so its
-    // own harmonics multiply out into sidebands; without this the top octaves
-    // fold that spread back down as grit. Real FM instruments dull with pitch
-    // for the same reason.
-    const float keytrack=fminf(1,420.0f/fmaxf(20.0f,v->increment*v->sample_rate));
+    // No key-track on the index. One was added on the assumption that the
+    // modulator's harmonics would fold at the top of the keyboard, but it turns
+    // out to prevent nothing: band-limiting the contour itself already removes
+    // everything that would fold, and taking the key-track out leaves the
+    // energy below the fundamental unchanged at every note -- lower, at two of
+    // them. What it did do was scale the index to 40% at C6 and 20% at C7,
+    // which is audible as the top of the keyboard going smooth while the
+    // bottom stays growly. That was timbre loss buying nothing.
     // Velocity drives the index as well as the level. On an FM instrument that
     // is the expressive gesture -- playing harder has to get brighter, not just
     // louder -- and the index is already this engine's brightness control.
     const float touch=.4f+.6f*v->velocity;
-    const float index=(.025f+.28f*p->spikes+.22f*p->pinch+.3f*p->morph+.2f*p->bulge+.2f*v->pressure)*keytrack*touch;
+    const float index=(.025f+.28f*p->spikes+.22f*p->pinch+.3f*p->morph+.2f*p->bulge+.2f*v->pressure)*touch;
     // Free-running and irrational, driven by Spikes and Pinch alone. Two
     // operators at an irrational ratio share no period, so the partials stop
     // lining up into a harmonic series -- which is the clangorous character
